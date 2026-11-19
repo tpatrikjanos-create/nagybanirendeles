@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2a10">
+<title>Nagybani Gastro – Rendelés</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Instrument+Sans:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{
+  --ink:#1b2a10; --ink-2:#273116; --leaf:#82a241; --leaf-2:#a6cf4f; --olive:#61672c; --sage:#e3e9d6;
+  --paper:#f3f6ea; --rule:#d5ddc1; --muted:#5d6a46; --warn:#9a5a1c; --danger:#c0392b;
+  --red:#d9412f; --orange:#f08a24; --yellow:#f2c230; --purple:#8a4fb0; --egg:#d9a066;
+  --serif:"Young Serif",Georgia,serif; --sans:"Instrument Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{min-height:100vh;padding-bottom:120px}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--leaf-2);outline-offset:2px;border-radius:8px}
+
+/* ===== HERO ===== */
+.hero{position:relative;overflow:hidden;color:#f4f9e8;padding:26px 20px 92px;
+  background:
+   radial-gradient(700px 320px at 8% 0%,rgba(166,207,79,.55),transparent 60%),
+   radial-gradient(600px 360px at 100% 20%,rgba(240,138,36,.38),transparent 62%),
+   radial-gradient(520px 300px at 60% 120%,rgba(217,65,47,.30),transparent 60%),
+   linear-gradient(150deg,#14200b,#244016 55%,#33591d)}
+.hero-in{max-width:1200px;margin:0 auto;position:relative;z-index:2;display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center}
+.badge{width:112px;height:112px;border-radius:50%;background:#fff;display:grid;place-items:center;flex:none;position:relative;
+  box-shadow:0 0 0 5px rgba(166,207,79,.55),0 18px 40px -10px rgba(0,0,0,.55);animation:pulse 4.5s ease-in-out infinite}
+.badge img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block}
+@keyframes pulse{50%{box-shadow:0 0 0 12px rgba(166,207,79,.18),0 18px 40px -10px rgba(0,0,0,.55)}}
+.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(30px,5vw,54px);line-height:1.04;margin:0;letter-spacing:-.3px}
+.hero p{margin:10px 0 0;font-size:17px;opacity:.88;max-width:48ch}
+.notice{font-size:14px;font-weight:700;padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.22);white-space:nowrap}
+.notice.warn{background:rgba(240,138,36,.3);border-color:rgba(240,138,36,.6)}
+.float{position:absolute;font-size:34px;opacity:.85;filter:drop-shadow(0 8px 10px rgba(0,0,0,.35));animation:bob 7s ease-in-out infinite;z-index:1;user-select:none}
+@keyframes bob{50%{transform:translateY(-14px) rotate(8deg)}}
+@media (max-width:760px){.hero-in{grid-template-columns:auto 1fr}.notice{grid-column:1/-1;justify-self:start}.badge{width:84px;height:84px}.float{display:none}}
+
+/* ===== ÚT (lépések + teherautó) ===== */
+.road{position:relative;max-width:1200px;margin:-52px auto 0;padding:0 20px;z-index:5}
+.road-card{position:relative;background:#fff;border-radius:20px;padding:16px 22px 26px;box-shadow:0 24px 50px -28px rgba(20,32,11,.6);height:78px}
+.road-card::before{content:"";position:absolute;left:22px;right:22px;bottom:18px;height:3px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--rule) 0 14px,transparent 14px 22px)}
+.steps{position:absolute;left:22px;right:22px;bottom:12px;display:flex;justify-content:space-between;margin:0;padding:0;list-style:none}
+.steps li{font-size:14px;font-weight:700;color:var(--muted);background:#fff;padding:0 10px;position:relative;z-index:1}
+.steps li:first-child{padding-left:0}.steps li:last-child{padding-right:0}
+.steps li.on{color:var(--ink)}
+.steps li.done{color:var(--leaf)}
+.steps li.on::before{content:"";position:absolute;left:0;right:0;bottom:-8px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--leaf),var(--orange))}
+.truck{position:absolute;bottom:26px;left:22px;width:64px;height:34px;z-index:2;pointer-events:none}
+.truck.go{animation:drive .9s cubic-bezier(.45,0,.25,1) both}
+@keyframes drive{0%{transform:translateX(-90px)}100%{transform:translateX(var(--stop,0px))}}
+
+main{max-width:1200px;margin:0 auto;padding:0 20px}
+.step[hidden]{display:none!important}
+.step{animation:rise .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ===== 1. LÉPÉS ===== */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:28px;align-items:start;margin-top:22px}
+@media (max-width:900px){.layout{grid-template-columns:1fr}.ticket-col{display:none}}
+.controls{position:sticky;top:0;z-index:20;background:linear-gradient(var(--paper) 86%,rgba(243,246,234,0));padding:10px 0 16px}
+.search{width:100%;padding:15px 20px;border-radius:999px;border:2px solid transparent;background:#fff;font-size:16px;outline:none;box-shadow:0 10px 24px -16px rgba(20,32,11,.6)}
+.search:focus{border-color:var(--leaf)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:14px 2px 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:#fff;padding:9px 15px;border-radius:999px;font-size:14px;font-weight:600;cursor:pointer;box-shadow:0 4px 12px -8px rgba(20,32,11,.6);transition:transform .15s,background .2s;display:flex;gap:6px;align-items:center}
+.chip:hover{transform:translateY(-2px)}
+.chip.on{background:var(--c,var(--ink));color:#fff}
+
+.group{margin:30px 0 0;--c:var(--leaf)}
+.group-head{display:flex;align-items:center;gap:14px;margin:0 0 12px}
+.ico{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;font-size:28px;background:color-mix(in srgb,var(--c) 22%,#fff);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--c) 45%,#fff)}
+.group-head h2{font-family:var(--serif);font-weight:400;font-size:23px;margin:0}
+.group-head span{margin-left:auto;font-size:13px;color:var(--muted);font-weight:600}
+.rows{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 12px 11px 16px;background:#fff;border-radius:16px;position:relative;overflow:hidden;
+  box-shadow:0 8px 20px -18px rgba(20,32,11,.7);transition:transform .18s,box-shadow .18s,background .25s}
+.row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c);opacity:.55;transition:opacity .2s,width .2s}
+.row:hover{transform:translateX(3px);box-shadow:0 14px 26px -18px rgba(20,32,11,.8)}
+.row.is-on{background:color-mix(in srgb,var(--c) 14%,#fff)}
+.row.is-on::before{opacity:1;width:8px}
+.row.is-off{opacity:.5}
+.row.is-off:hover{transform:none}
+.name{display:flex;flex-direction:column;gap:3px;min-width:0}
+.name b{font-weight:600;font-size:16px;line-height:1.3}
+.tag{font-size:12.5px;font-weight:600;color:var(--olive)}
+.tag.warn{color:var(--warn)}.tag.off{color:var(--danger)}
+.ctrl{display:flex;gap:8px;align-items:center}
+.unit{padding:9px 8px;border-radius:12px;border:0;background:var(--sage);font-size:14px;font-weight:700;color:var(--olive);max-width:112px;cursor:pointer}
+.stepper{display:flex;align-items:center;border-radius:999px;background:var(--sage);overflow:hidden}
+.stepper button{width:38px;height:38px;border:0;background:transparent;font-size:20px;font-weight:700;cursor:pointer;color:var(--ink)}
+.stepper button:hover:not(:disabled){background:var(--c)}
+.stepper button:disabled{color:#a9b595;cursor:default}
+.stepper input{width:54px;border:0;text-align:center;font-size:16px;font-weight:800;background:#fff;height:38px;outline:none;-moz-appearance:textfield;font-variant-numeric:tabular-nums}
+.stepper input:disabled{background:transparent;color:#a9b595}
+.empty{color:var(--muted);padding:40px 0}
+
+/* Szállítólevél */
+.ticket{position:sticky;top:16px;background:#fff;border-radius:6px 6px 0 0;padding:0 20px;box-shadow:0 30px 50px -34px rgba(20,32,11,.7);overflow:visible}
+.ticket::before{content:"";display:block;height:8px;margin:0 -20px 16px;background:linear-gradient(90deg,var(--leaf),var(--yellow),var(--orange),var(--red));border-radius:6px 6px 0 0}
+.ticket::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 10px 0,transparent 7px,#fff 7.5px) 0 0/20px 10px repeat-x}
+.ticket h2{font-family:var(--serif);font-weight:400;font-size:24px;margin:0}
+.ticket .hint{margin:4px 0 12px;color:var(--muted);font-size:14px}
+.ticket ul{list-style:none;margin:0;padding:0;max-height:48vh;overflow:auto;border-top:2px dashed var(--rule)}
+.ticket li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--rule);font-size:15px}
+.ticket li b{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--olive)}
+.ticket li.pop{animation:pop .4s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.9);background:var(--sage)}to{transform:none}}
+.ticket .empty-line{color:var(--muted);font-size:14px;padding:16px 0;border:0}
+.ticket .note{font-size:13px;color:var(--warn);font-weight:600;margin:12px 0 0;min-height:1em}
+.ticket .foot{padding:14px 0 28px}
+.ticket .foot .btn{width:100%}
+
+.bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:40;padding:10px 10px 10px 20px;border-radius:999px;
+  background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 20px 40px -12px rgba(0,0,0,.6)}
+.bar[hidden]{display:none!important}
+.bar .count{font-size:15px;font-weight:700}
+@media (min-width:901px){.bar{display:none!important}}
+
+.btn{border:0;cursor:pointer;border-radius:999px;padding:14px 26px;font-weight:800;font-size:15px;color:var(--ink);
+  background:linear-gradient(135deg,var(--leaf-2),var(--yellow));box-shadow:0 12px 24px -12px rgba(166,207,79,.9);transition:transform .15s,filter .2s}
+.btn:hover{filter:brightness(1.06);transform:translateY(-1px)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px var(--rule)}
+
+/* ===== 2. LÉPÉS ===== */
+.back{background:none;border:0;color:var(--olive);font-weight:700;cursor:pointer;padding:22px 0 0;font-size:15px}
+.two{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:28px;align-items:start;margin-top:14px}
+@media (max-width:820px){.two{grid-template-columns:1fr}}
+.form{background:#fff;border-radius:24px;padding:28px;box-shadow:0 30px 50px -34px rgba(20,32,11,.7);border-top:8px solid var(--leaf)}
+.form h2{font-family:var(--serif);font-weight:400;font-size:30px;margin:0}
+.form .hint{margin:6px 0 10px;color:var(--muted);font-size:15px}
+label{display:block;font-size:14px;font-weight:700;margin:18px 0 6px}
+.field{width:100%;padding:13px 15px;border-radius:14px;border:2px solid var(--rule);background:var(--paper);font-size:16px;outline:none;transition:border .2s,background .2s}
+.field:focus{border-color:var(--leaf);background:#fff}
+.field.bad{border-color:var(--danger)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{color:var(--danger);font-size:14px;font-weight:600;margin:6px 0 0}
+.err:empty{display:none}
+.form-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:26px;flex-wrap:wrap}
+.summary-side{background:#fff;border-radius:6px;padding:0 22px;position:relative;box-shadow:0 30px 50px -34px rgba(20,32,11,.7)}
+.summary-side::before{content:"";display:block;height:8px;margin:0 -22px 16px;background:linear-gradient(90deg,var(--orange),var(--yellow),var(--leaf))}
+.summary-side::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 10px 0,transparent 7px,#fff 7.5px) 0 0/20px 10px repeat-x}
+.summary-side h2{font-family:var(--serif);font-weight:400;font-size:22px;margin:0 0 10px}
+.summary-side ul{list-style:none;margin:0;padding:0;max-height:50vh;overflow:auto;border-top:2px dashed var(--rule)}
+.summary-side li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px dashed var(--rule);font-size:15px}
+.summary-side li b{white-space:nowrap;color:var(--olive);font-variant-numeric:tabular-nums}
+.summary-side .note{font-size:13px;color:var(--warn);font-weight:600;margin:12px 0 0;padding-bottom:26px}
+
+/* ===== 3. LÉPÉS ===== */
+.done{max-width:640px;margin:44px auto 0;position:relative}
+.done h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5vw,46px);line-height:1.08;margin:0 0 10px}
+.done p{color:var(--muted);font-size:17px;margin:0 0 22px}
+.slip{background:#fff;border-radius:6px;padding:24px 26px 0;position:relative;margin-top:26px;box-shadow:0 30px 50px -34px rgba(20,32,11,.7)}
+.slip::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:linear-gradient(90deg,var(--leaf),var(--yellow),var(--orange),var(--red));border-radius:6px 6px 0 0}
+.slip::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:radial-gradient(circle at 10px 0,transparent 7px,#fff 7.5px) 0 0/20px 10px repeat-x}
+.slip div{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px dashed var(--rule);font-size:16px}
+.slip div:last-of-type{border-bottom:0;padding-bottom:26px}
+.slip span{color:var(--muted)}
+.stamp{position:absolute;right:18px;top:-26px;border:4px solid var(--leaf);color:var(--olive);background:#fff;font-family:var(--serif);font-size:22px;padding:6px 16px;border-radius:8px;transform:rotate(-8deg) scale(2.2);opacity:0;animation:stamp .55s .35s cubic-bezier(.2,1.3,.4,1) forwards;pointer-events:none}
+@keyframes stamp{0%{opacity:0;transform:rotate(-8deg) scale(2.2)}60%{opacity:.95;transform:rotate(-8deg) scale(.94)}100%{opacity:.95;transform:rotate(-8deg) scale(1)}}
+.confetti{position:fixed;top:-20px;width:10px;height:14px;border-radius:3px;z-index:80;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
+
+.toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,16px);background:var(--ink);color:#fff;padding:12px 18px;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:.3s;z-index:60;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <span class="float" style="left:46%;top:18px;animation-delay:-1s">🥕</span>
+  <span class="float" style="left:62%;top:70px;animation-delay:-3s">🍅</span>
+  <span class="float" style="left:78%;top:20px;animation-delay:-5s">🥦</span>
+  <span class="float" style="left:90%;top:84px;animation-delay:-2s">🍋</span>
+  <span class="float" style="left:36%;top:96px;animation-delay:-4s">🫑</span>
+  <div class="hero-in">
+    <div class="badge"><img src="data:image/png;base64,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" alt="Nagybani Gastro logó"></div>
+    <div>
+      <h1>Friss áru, egy rendeléssel</h1>
+      <p>Válassza ki a tételeket, adja meg a szállítást, és e-mailben visszaigazoljuk.</p>
+    </div>
+    <span class="notice" id="notice"></span>
+  </div>
+</header>
+
+<div class="road" aria-hidden="true">
+  <div class="road-card">
+    <ol class="steps" id="steps">
+      <li data-s="1" class="on">Tételek</li>
+      <li data-s="2">Szállítás</li>
+      <li data-s="3">Rögzítve</li>
+    </ol>
+    <svg class="truck" id="truck" viewBox="0 0 64 34">
+      <rect x="2" y="4" width="36" height="20" rx="2" fill="#244016"/>
+      <path d="M38 10h12l8 9v5H38z" fill="#244016"/>
+      <path d="M42 12.5h7l4.5 6H42z" fill="#fff"/>
+      <circle cx="14" cy="26" r="5" fill="#f08a24" stroke="#1b2a10" stroke-width="2"/>
+      <circle cx="46" cy="26" r="5" fill="#f08a24" stroke="#1b2a10" stroke-width="2"/>
+    </svg>
+  </div>
+</div>
+
+<main>
+  <section class="step" id="step1">
+    <div class="layout">
+      <div>
+        <div class="controls">
+          <input class="search" id="q" type="search" placeholder="Keresés a tételek között" autocomplete="off" aria-label="Keresés">
+          <div class="chips" id="chips"></div>
+        </div>
+        <div id="grid"></div>
+      </div>
+      <aside class="ticket-col">
+        <div class="ticket">
+          <h2>Szállítólevél</h2>
+          <p class="hint">A kiválasztott tételek itt gyűlnek.</p>
+          <ul id="ticket-list"></ul>
+          <p class="note" id="ticket-note"></p>
+          <div class="foot"><button class="btn" id="next-side" type="button">Tovább az adatokhoz</button></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="step" id="step2" hidden>
+    <button class="back" id="back" type="button">← Vissza a tételekhez</button>
+    <div class="two">
+      <form class="form" id="form" novalidate>
+        <h2>Szállítási adatok</h2>
+        <p class="hint">Minden mező kötelező. Adatok nélkül nem adható le a rendelés.</p>
+
+        <label for="company">Cégnév</label>
+        <input class="field" id="company" name="company" placeholder="pl. Aquaworld Kft." autocomplete="organization">
+        <p class="err" id="err-company"></p>
+
+        <label for="date">Szállítás napja</label>
+        <input class="field" id="date" name="date" type="date">
+        <p class="err" id="err-date"></p>
+
+        <label>Mikortól lehet érkezni az áruval?</label>
+        <div class="row2">
+          <select class="field" id="hour" aria-label="Óra"></select>
+          <select class="field" id="minute" aria-label="Perc"></select>
+        </div>
+        <p class="err" id="err-time"></p>
+
+        <label for="email">E-mail cím</label>
+        <input class="field" id="email" name="email" type="email" placeholder="nev@ceg.hu" autocomplete="email">
+        <p class="err" id="err-email"></p>
+
+        <p class="err" id="err-cart"></p>
+        <div class="form-actions">
+          <button class="btn ghost" id="back2" type="button">Vissza</button>
+          <button class="btn" id="submit" type="submit">Rendelés leadása</button>
+        </div>
+      </form>
+
+      <aside class="summary-side">
+        <h2>Rendelt tételek</h2>
+        <ul id="summary-list"></ul>
+        <p class="note" id="summary-note"></p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="step" id="step3" hidden>
+    <div class="done">
+      <h2>Rendelés rögzítve.</h2>
+      <p id="ok-msg">Köszönjük. A visszaigazolást elküldtük az e-mail címre.</p>
+      <div class="slip">
+        <span class="stamp" aria-hidden="true">Rögzítve</span>
+        <div><span>Cég</span><b id="ok-company"></b></div>
+        <div><span>Szállítás</span><b id="ok-date"></b></div>
+        <div><span>Érkezés</span><b id="ok-time"></b></div>
+        <div><span>E-mail</span><b id="ok-email"></b></div>
+      </div>
+      <p style="margin-top:34px"><button class="btn ghost" id="again" type="button">Új rendelés</button></p>
+    </div>
+  </section>
+</main>
+
+<div class="bar" id="bar" hidden>
+  <span class="count" id="bar-count"></span>
+  <button class="btn" id="next" type="button">Tovább</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ===== 1. Beállítások ===== */
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "YOUR_PROJECT",
+  appId: "YOUR_APP_ID"
+};
+/* A PHP-szkript címe. Ha az index.html ugyanazon a tárhelyen van, elég: "send-order.php".
+   Ha máshol (pl. GitHub Pages), a teljes cím kell: "https://nagybanigastro.hu/send-order.php" */
+const MAIL_ENDPOINT = "send-order.php";
+
+const CUTOFF_HOUR = 13;
+const UNITS = ["kg","db","doboz","csomag","csomó","köteg","vödör"];
+const HOURS = Array.from({length:15}, (_,i)=> String(i+6).padStart(2,"0"));
+const MINUTES = Array.from({length:12}, (_,i)=> String(i*5).padStart(2,"0"));
+
+/* Kategória-megjelenés: emoji + szín (a logó zöldjei és a termékek színei) */
+const CAT_STYLE = {
+  "Zöldségek":["🥕","#f08a24"],
+  "Paprika, paradicsom, padlizsán":["🫑","#d9412f"],
+  "Burgonya, hagyma":["🥔","#c9954a"],
+  "Káposzta, saláta":["🥬","#82a241"],
+  "Uborka, cukkini, tök":["🥒","#4f9a4a"],
+  "Gomba":["🍄","#9a7b63"],
+  "Fűszernövények":["🌿","#2f8a4f"],
+  "Gyümölcs":["🍎","#d9412f"],
+  "Egzotikus gyümölcsök":["🍍","#f2b630"],
+  "Száraz áru":["🫘","#a8683a"],
+  "Tojások":["🥚","#d9a066"],
+  "Csíra":["🌱","#6fb542"],
+  "Savanyúságok":["🫙","#8a4fb0"],
+  "Konyhakész, tisztított termékek":["🔪","#3b8ea5"]
+};
+const catStyle = c => CAT_STYLE[c] || ["🥬","#82a241"];
+
+/* ===== 2. Termékek (generálva az Excelből) ===== */
+const PRODUCTS = [
+ {
+  "id": "p001",
+  "name": "Sárgarépa",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p002",
+  "name": "Fehérrépa",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p003",
+  "name": "Zellergumó",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p004",
+  "name": "Brokkoli Jeges - Spanyol",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p005",
+  "name": "Chili",
+  "cat": "Zöldségek",
+  "unit": "doboz",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p006",
+  "name": "Cékla",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p007",
+  "name": "Karfiol",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p008",
+  "name": "Karalábé",
+  "cat": "Zöldségek",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p009",
+  "name": "Piros retek",
+  "cat": "Zöldségek",
+  "unit": "csomag",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p010",
+  "name": "Angolzeller",
+  "cat": "Zöldségek",
+  "unit": "csomó",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p011",
+  "name": "Gyömbér",
+  "cat": "Zöldségek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p012",
+  "name": "Burgonya Francia",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p013",
+  "name": "Parázs burgonya",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p014",
+  "name": "Burgonya (sárga)",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p015",
+  "name": "Édesburgonya",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p016",
+  "name": "Fokhagyma",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p017",
+  "name": "Lilahagyma",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p018",
+  "name": "Póréhagyma ÚJ",
+  "cat": "Burgonya, hagyma",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p019",
+  "name": "Újhagyma",
+  "cat": "Burgonya, hagyma",
+  "unit": "csomag",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p020",
+  "name": "Vöröshagyma",
+  "cat": "Burgonya, hagyma",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p021",
+  "name": "Fehér káposzta",
+  "cat": "Káposzta, saláta",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p022",
+  "name": "Kelkáposzta",
+  "cat": "Káposzta, saláta",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p023",
+  "name": "Vörös káposzta",
+  "cat": "Káposzta, saláta",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p024",
+  "name": "Cékla levél",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p025",
+  "name": "Fejessaláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p026",
+  "name": "Madársaláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p027",
+  "name": "Jégsaláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p028",
+  "name": "Lolo saláta – piros, zöld",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p029",
+  "name": "Saláta mix",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p030",
+  "name": "Radichio saláta",
+  "cat": "Káposzta, saláta",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p031",
+  "name": "Római saláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p032",
+  "name": "Bébispenót",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p033",
+  "name": "Rukkola saláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p034",
+  "name": "Frize saláta",
+  "cat": "Káposzta, saláta",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p035",
+  "name": "Áfonya (125 g)",
+  "cat": "Gyümölcs",
+  "unit": "doboz",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p036",
+  "name": "Alma golden",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p037",
+  "name": "Alma idared",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p038",
+  "name": "Alma zöld",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p039",
+  "name": "Alma Starking",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p040",
+  "name": "Import eper",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p041",
+  "name": "Görögdinnye",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "–"
+ },
+ {
+  "id": "p042",
+  "name": "Körte",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p043",
+  "name": "Málna (125 g)",
+  "cat": "Gyümölcs",
+  "unit": "doboz",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p044",
+  "name": "Mézdinnye",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p045",
+  "name": "Nektarin",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p046",
+  "name": "Őszibarack",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p047",
+  "name": "Ribizli (125 g)",
+  "cat": "Gyümölcs",
+  "unit": "doboz",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p048",
+  "name": "Sárgabarack",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p049",
+  "name": "Sárgadinnye",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p050",
+  "name": "Szeder (125 g)",
+  "cat": "Gyümölcs",
+  "unit": "doboz",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p051",
+  "name": "Szilva ringló",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p052",
+  "name": "Szilva",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p053",
+  "name": "Szőlő – fehér",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p054",
+  "name": "Szőlő – rosé",
+  "cat": "Gyümölcs",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p055",
+  "name": "Ananász big",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p056",
+  "name": "Ananász normal",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p057",
+  "name": "Avokádó",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p058",
+  "name": "Banán",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p059",
+  "name": "Citrom",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p060",
+  "name": "Csillaggyümölcs",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "ár egyeztetés"
+ },
+ {
+  "id": "p061",
+  "name": "Datolya aszalt",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p062",
+  "name": "Füge aszalt",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "–"
+ },
+ {
+  "id": "p063",
+  "name": "Gránátalma",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p064",
+  "name": "Grapefruit",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p065",
+  "name": "Kiwi",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p066",
+  "name": "Lime",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p067",
+  "name": "Mandarin",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "ár egyeztetés"
+ },
+ {
+  "id": "p068",
+  "name": "Mangó",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p069",
+  "name": "Narancs extra",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p070",
+  "name": "Narancs",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p071",
+  "name": "Physalis",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p072",
+  "name": "Piros grapefruit",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p073",
+  "name": "Pomelo",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "ár egyeztetés"
+ },
+ {
+  "id": "p074",
+  "name": "Sárkánygyümölcs",
+  "cat": "Egzotikus gyümölcsök",
+  "unit": "db",
+  "orderable": false,
+  "cleaned": false,
+  "priceNote": "ár egyeztetés"
+ },
+ {
+  "id": "p075",
+  "name": "Hegyes erős paprika",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p076",
+  "name": "Kaliforniai paprika (piros, sárga, zöld)",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p077",
+  "name": "Kápia paprika",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p078",
+  "name": "Koktélparadicsom",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p079",
+  "name": "Lecsópaprika",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p080",
+  "name": "Padlizsán",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p081",
+  "name": "Paradicsom",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p082",
+  "name": "Tv-paprika",
+  "cat": "Paprika, paradicsom, padlizsán",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p083",
+  "name": "Cukkini",
+  "cat": "Uborka, cukkini, tök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p084",
+  "name": "Kígyóuborka",
+  "cat": "Uborka, cukkini, tök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p085",
+  "name": "Sütőtök",
+  "cat": "Uborka, cukkini, tök",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p086",
+  "name": "Csiperke gomba I.o.",
+  "cat": "Gomba",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p087",
+  "name": "Csiperke gomba I.o. apró",
+  "cat": "Gomba",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p088",
+  "name": "Laska gomba",
+  "cat": "Gomba",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p089",
+  "name": "Barna csiperke",
+  "cat": "Gomba",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p090",
+  "name": "Bazsalikom",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p091",
+  "name": "Francia petrezselyem",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p092",
+  "name": "Kakukkfű",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p093",
+  "name": "Kapor",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p094",
+  "name": "Koriander",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p095",
+  "name": "Menta",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p096",
+  "name": "Snidling",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p097",
+  "name": "Petrezselyem",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p098",
+  "name": "Rozmaring",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p099",
+  "name": "Zsálya",
+  "cat": "Fűszernövények",
+  "unit": "köteg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p100",
+  "name": "Darált dió",
+  "cat": "Száraz áru",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p101",
+  "name": "Dióbél extra",
+  "cat": "Száraz áru",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p102",
+  "name": "Lencse",
+  "cat": "Száraz áru",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p103",
+  "name": "Tarkabab",
+  "cat": "Száraz áru",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p104",
+  "name": "Sárgaborsó",
+  "cat": "Száraz áru",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p105",
+  "name": "Tojás – fertőtlenített, ózon \"M\"",
+  "cat": "Tojások",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p106",
+  "name": "Tojás – fertőtlenített, ózon \"L\"",
+  "cat": "Tojások",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p107",
+  "name": "Csíra",
+  "cat": "Csíra",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p108",
+  "name": "Zöldborsó csíra",
+  "cat": "Csíra",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p109",
+  "name": "Mungóbab csíra",
+  "cat": "Csíra",
+  "unit": "db",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p110",
+  "name": "Almapaprika (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p111",
+  "name": "Cékla (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p112",
+  "name": "Csalamádé (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p113",
+  "name": "Csemege uborka (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p114",
+  "name": "Egész káposzta (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p115",
+  "name": "Kovászos uborka (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p116",
+  "name": "Pepperoni (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p117",
+  "name": "Vágott káposzta (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p118",
+  "name": "Vegyes-darabos (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p119",
+  "name": "Gyöngyhagyma (5 L)",
+  "cat": "Savanyúságok",
+  "unit": "vödör",
+  "orderable": true,
+  "cleaned": false,
+  "priceNote": null
+ },
+ {
+  "id": "p120",
+  "name": "Tisztított burgonya, egész",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p121",
+  "name": "Tisztított burgonya, gépi feldolgozott",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p122",
+  "name": "Tisztított burgonya kézi kocka",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p123",
+  "name": "Tisztított burgonya cikk",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p124",
+  "name": "Tisztított vöröshagyma",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p125",
+  "name": "Tisztított vöröshagyma kocka, szelet",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p126",
+  "name": "Tisztított lilahagyma",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p127",
+  "name": "Tisztított sárgarépa",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p128",
+  "name": "Tisztított fehérrépa",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p129",
+  "name": "Tisztított zeller",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p130",
+  "name": "Tisztított fejeskáposzta",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p131",
+  "name": "Tisztított kelkáposzta",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p132",
+  "name": "Tisztított vöröskáposzta",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p133",
+  "name": "Tisztított karalábé",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ },
+ {
+  "id": "p134",
+  "name": "Tisztított fokhagyma",
+  "cat": "Konyhakész, tisztított termékek",
+  "unit": "kg",
+  "orderable": true,
+  "cleaned": true,
+  "priceNote": null
+ }
+];
+
+/* ===== 3. Állapot és segédek ===== */
+const byId = Object.fromEntries(PRODUCTS.map(p=>[p.id,p]));
+const state = { step:1, cat:"all", q:"", qty:{}, unit:{}, last:null };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const round = x => Math.round(x*10)/10;
+const fmtQty = n => Number.isInteger(n) ? String(n) : n.toFixed(1).replace(".", ",");
+const fmtDate = s => { const [y,m,d] = s.split("-"); return `${y}. ${m}. ${d}.`; };
+const afterCutoff = () => new Date().getHours() >= CUTOFF_HOUR;
+const toISO = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+const addDays = n => { const d = new Date(); d.setDate(d.getDate()+n); return toISO(d); };
+const cartIds = () => Object.keys(state.qty).filter(id => state.qty[id] > 0);
+const unitOf = id => state.unit[id] || byId[id].unit;
+const cleanedInCart = () => cartIds().some(id => byId[id].cleaned);
+const minDate = () => cleanedInCart() ? addDays(1) : toISO(new Date());
+function setQty(id, q){ if(q > 0){ state.qty[id] = round(q); state.last = id; } else delete state.qty[id]; }
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=> t.classList.remove("show"), 4200);
+}
+
+/* ===== 4. Határidő ===== */
+function renderNotice(){
+  const el = $("#notice");
+  if(afterCutoff()){ el.textContent = "Tisztított áru: mára lezárult"; el.className = "notice warn"; }
+  else { el.textContent = "Tisztított áru: ma 13:00-ig"; el.className = "notice"; }
+}
+function purgeExpiredCleaned(){
+  if(!afterCutoff()) return;
+  let removed = false;
+  for(const id of cartIds()) if(byId[id].cleaned){ delete state.qty[id]; removed = true; }
+  if(removed) toast("13:00 után a tisztított tételek kikerültek a szállítólevélről.");
+}
+
+/* ===== 5. Lista ===== */
+function renderChips(){
+  const cats = [...new Set(PRODUCTS.map(p=>p.cat))];
+  $("#chips").innerHTML =
+    `<button class="chip ${state.cat==="all"?"on":""}" data-cat="all" type="button">Minden</button>` +
+    cats.map(c => { const [e,col] = catStyle(c);
+      return `<button class="chip ${state.cat===c?"on":""}" style="--c:${col}" data-cat="${esc(c)}" type="button"><span>${e}</span>${esc(c)}</button>`; }).join("");
+}
+
+function row(p){
+  const qty = state.qty[p.id] || 0;
+  const unit = unitOf(p.id);
+  const off = !p.orderable || (p.cleaned && afterCutoff());
+  let tag = "";
+  if(!p.orderable) tag = `<span class="tag warn">Ár egyeztetés: nem rendelhető</span>`;
+  else if(p.cleaned) tag = afterCutoff()
+      ? `<span class="tag off">13:00 után nem rendelhető</span>`
+      : `<span class="tag">Tisztított, ma 13:00-ig</span>`;
+  return `
+  <li class="row ${off?"is-off":""} ${qty>0?"is-on":""}" data-id="${esc(p.id)}">
+    <div class="name"><b>${esc(p.name)}</b>${tag}</div>
+    <div class="ctrl">
+      <select class="unit" data-act="unit" aria-label="Mértékegység: ${esc(p.name)}" ${off?"disabled":""}>
+        ${UNITS.map(u => `<option value="${esc(u)}" ${u===unit?"selected":""}>${esc(u)}</option>`).join("")}
+      </select>
+      <div class="stepper">
+        <button type="button" data-act="dec" aria-label="Csökkentés" ${off||qty<=0?"disabled":""}>−</button>
+        <input data-act="qty" inputmode="decimal" autocomplete="off" placeholder="0" value="${qty>0?fmtQty(qty):""}" ${off?"disabled":""} aria-label="Mennyiség: ${esc(p.name)}">
+        <button type="button" data-act="inc" aria-label="Növelés" ${off?"disabled":""}>+</button>
+      </div>
+    </div>
+  </li>`;
+}
+
+function renderGrid(){
+  const q = state.q.trim().toLowerCase();
+  const order = [], groups = {};
+  for(const p of PRODUCTS){
+    if(state.cat !== "all" && p.cat !== state.cat) continue;
+    if(q && !p.name.toLowerCase().includes(q)) continue;
+    if(!groups[p.cat]){ groups[p.cat] = []; order.push(p.cat); }
+    groups[p.cat].push(p);
+  }
+  $("#grid").innerHTML = order.length
+    ? order.map(c => { const [e,col] = catStyle(c);
+        return `<section class="group" style="--c:${col}">
+          <div class="group-head"><div class="ico">${e}</div><h2>${esc(c)}</h2><span>${groups[c].length} tétel</span></div>
+          <ul class="rows">${groups[c].map(row).join("")}</ul></section>`; }).join("")
+    : `<p class="empty">Nincs találat.</p>`;
+  renderTicket();
+  renderBar();
+}
+
+function renderTicket(){
+  const ids = cartIds();
+  $("#ticket-list").innerHTML = ids.length
+    ? ids.map(id => `<li class="${id===state.last?"pop":""}"><span>${esc(byId[id].name)}</span><b>${fmtQty(state.qty[id])} ${esc(unitOf(id))}</b></li>`).join("")
+    : `<li class="empty-line">Még nincs tétel. Adjon meg mennyiséget a listában.</li>`;
+  $("#ticket-note").textContent = cleanedInCart()
+    ? "Tisztított tétel van a szállítólevélen: a szállítás legkorábban holnap lehet." : "";
+  state.last = null;
+}
+function renderBar(){
+  const n = cartIds().length;
+  $("#bar").hidden = n === 0 || state.step !== 1;
+  $("#bar-count").textContent = `${n} tétel a szállítólevélen`;
+}
+
+/* ===== 6. Lépések + teherautó ===== */
+function showStep(n, animate){
+  const prev = state.step;
+  state.step = n;
+  ["step1","step2","step3"].forEach((id,i) => $("#"+id).hidden = (i+1) !== n);
+  document.querySelectorAll("#steps li").forEach(li => {
+    const s = +li.dataset.s;
+    li.classList.toggle("on", s === n);
+    li.classList.toggle("done", s < n);
+  });
+  if(animate && n > prev) driveTruck(n);
+  if(n === 2){ renderSummary(); $("#date").min = minDate(); }
+  renderBar();
+  window.scrollTo({top:0, behavior:"smooth"});
+}
+function driveTruck(n){
+  const t = $("#truck");
+  const li = document.querySelector(`#steps li[data-s="${n}"]`);
+  const road = t.parentElement.getBoundingClientRect();
+  const target = li.getBoundingClientRect();
+  t.style.setProperty("--stop", Math.max(0, target.left - road.left - 22 - 8) + "px");
+  t.classList.remove("go"); void t.offsetWidth; t.classList.add("go");
+}
+function renderSummary(){
+  $("#summary-list").innerHTML = cartIds().map(id => `
+    <li><span>${esc(byId[id].name)}</span><b>${fmtQty(state.qty[id])} ${esc(unitOf(id))}</b></li>`).join("");
+  $("#summary-note").textContent = cleanedInCart()
+    ? "Tisztított tétel van a rendelésben: a szállítás legkorábban holnap lehet." : "";
+}
+
+/* ===== 7. Űrlap ===== */
+function fillTimeSelects(){
+  $("#hour").innerHTML = `<option value="">óra</option>` + HOURS.map(h=>`<option value="${h}">${h}</option>`).join("");
+  $("#minute").innerHTML = `<option value="">perc</option>` + MINUTES.map(m=>`<option value="${m}">${m}</option>`).join("");
+}
+function setErr(id, msg, fieldId){
+  $("#"+id).textContent = msg || "";
+  if(fieldId) $("#"+fieldId).classList.toggle("bad", !!msg);
+}
+function clearErrs(){
+  ["err-company","err-date","err-time","err-email","err-cart"].forEach(id => $("#"+id).textContent = "");
+  ["company","date","email"].forEach(id => $("#"+id).classList.remove("bad"));
+}
+function validate(){
+  clearErrs();
+  const v = { company:$("#company").value.trim(), date:$("#date").value, hour:$("#hour").value, minute:$("#minute").value, email:$("#email").value.trim() };
+  let ok = true;
+  if(!v.company){ setErr("err-company","Adja meg a cégnevet.","company"); ok = false; }
+  if(!v.date){ setErr("err-date","Válasszon szállítási napot.","date"); ok = false; }
+  else if(v.date < minDate()){
+    setErr("err-date", cleanedInCart() ? "Tisztított tételhez legkorábban holnapi nap kérhető." : "Ez a nap már nem választható.", "date");
+    ok = false;
+  }
+  if(!v.hour || !v.minute){ setErr("err-time","Adja meg, mikortól lehet érkezni az áruval."); ok = false; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email)){ setErr("err-email","Adjon meg érvényes e-mail címet.","email"); ok = false; }
+  if(!cartIds().length){ setErr("err-cart","Nincs kiválasztott tétel."); ok = false; }
+  if(cleanedInCart() && afterCutoff()){ setErr("err-cart","A tisztított tételek 13:00 után már nem rendelhetők. Távolítsa el őket."); ok = false; }
+  return ok ? v : null;
+}
+
+async function saveOrder(order){
+  if(window.firebase && FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY"){
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    await firebase.database().ref("orders").push(order);
+  } else {
+    const all = JSON.parse(localStorage.getItem("nb_orders") || "[]");
+    all.push(order);
+    localStorage.setItem("nb_orders", JSON.stringify(all));
+    console.warn("Firebase nincs beállítva: a rendelés csak helyben lett mentve.");
+  }
+}
+
+/* Visszaigazoló e-mail a PHP-szkripten át. Ha hibázik, a rendelés attól még rögzítve van. */
+async function sendMail(order){
+  const ctl = new AbortController();
+  const timer = setTimeout(()=> ctl.abort(), 15000);
+  try{
+    const res = await fetch(MAIL_ENDPOINT, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(order),
+      signal:ctl.signal
+    });
+    const data = await res.json().catch(()=> ({}));
+    return res.ok && data.ok === true;
+  }catch(err){
+    console.error("E-mail hiba:", err);
+    return false;
+  }finally{ clearTimeout(timer); }
+}
+
+async function submitOrder(e){
+  e.preventDefault();
+  const v = validate();
+  if(!v) return;
+  const btn = $("#submit");
+  btn.disabled = true; btn.textContent = "Küldés…";
+  const order = {
+    company: v.company, email: v.email,
+    deliveryDate: v.date, arriveFrom: `${v.hour}:${v.minute}`,
+    items: cartIds().map(id => ({ name:byId[id].name, category:byId[id].cat, qty:state.qty[id], unit:unitOf(id) })),
+    createdAt: Date.now(), status: "new"
+  };
+  try{
+    await saveOrder(order);
+  }catch(err){
+    console.error(err);
+    toast("A rendelést nem sikerült elmenteni. Próbálja újra.");
+    btn.disabled = false; btn.textContent = "Rendelés leadása";
+    return;
+  }
+  const mailed = await sendMail(order);
+  btn.disabled = false; btn.textContent = "Rendelés leadása";
+  showSuccess(order, mailed);
+}
+
+function showSuccess(o, mailed){
+  $("#ok-company").textContent = o.company;
+  $("#ok-date").textContent = fmtDate(o.deliveryDate);
+  $("#ok-time").textContent = o.arriveFrom;
+  $("#ok-email").textContent = o.email;
+  $("#ok-msg").textContent = mailed
+    ? "Köszönjük. A visszaigazolást elküldtük az e-mail címre."
+    : "Köszönjük. A rendelést rögzítettük, de a visszaigazoló e-mailt nem sikerült elküldeni. Hamarosan jelentkezünk.";
+  state.qty = {}; state.unit = {};
+  $("#form").reset();
+  renderGrid();
+  showStep(3, false);
+  confetti();
+}
+
+function confetti(){
+  if(matchMedia("(prefers-reduced-motion:reduce)").matches) return;
+  const colors = ["#82a241","#a6cf4f","#f2c230","#f08a24","#d9412f","#ffffff"];
+  for(let i=0;i<60;i++){
+    const s = document.createElement("span");
+    s.className = "confetti";
+    s.style.left = Math.random()*100 + "vw";
+    s.style.background = colors[i % colors.length];
+    s.style.animationDuration = (2 + Math.random()*1.8) + "s";
+    s.style.animationDelay = (Math.random()*0.6) + "s";
+    document.body.appendChild(s);
+    setTimeout(()=> s.remove(), 4800);
+  }
+}
+
+/* ===== 8. Események ===== */
+$("#grid").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-act]");
+  if(!btn || btn.disabled) return;
+  const id = btn.closest(".row").dataset.id;
+  const step = unitOf(id) === "kg" ? 0.5 : 1;
+  const cur = state.qty[id] || 0;
+  if(btn.dataset.act === "inc") setQty(id, cur + step);
+  if(btn.dataset.act === "dec") setQty(id, cur - step);
+  renderGrid();
+});
+$("#grid").addEventListener("change", e => {
+  const el = e.target, r = el.closest(".row");
+  if(!r) return;
+  const id = r.dataset.id;
+  if(el.dataset.act === "unit"){ state.unit[id] = el.value; state.last = state.qty[id] ? id : null; }
+  if(el.dataset.act === "qty"){
+    const v = Number(String(el.value).replace(",", "."));
+    setQty(id, isFinite(v) ? v : 0);
+  }
+  renderGrid();
+});
+$("#q").addEventListener("input", e => { state.q = e.target.value; renderGrid(); });
+$("#chips").addEventListener("click", e => {
+  const b = e.target.closest("button[data-cat]");
+  if(!b) return;
+  state.cat = b.dataset.cat;
+  renderChips(); renderGrid();
+});
+function goNext(){
+  purgeExpiredCleaned();
+  renderGrid();
+  if(!cartIds().length){ toast("Előbb válasszon legalább egy tételt."); return; }
+  showStep(2, true);
+}
+$("#next").addEventListener("click", goNext);
+$("#next-side").addEventListener("click", goNext);
+$("#back").addEventListener("click", ()=> showStep(1, false));
+$("#back2").addEventListener("click", ()=> showStep(1, false));
+$("#again").addEventListener("click", ()=>{ renderGrid(); showStep(1, false); });
+$("#form").addEventListener("submit", submitOrder);
+
+/* ===== 9. Indulás ===== */
+renderNotice();
+purgeExpiredCleaned();
+fillTimeSelects();
+renderChips();
+renderGrid();
+showStep(1, false);
+</script>
+</body>
+</html>

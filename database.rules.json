@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "orders": {
+      "$orderId": {
+        ".read": false,
+        ".write": "!data.exists() && newData.exists()",
+        ".validate": "newData.hasChildren(['company', 'email', 'deliveryDate', 'arriveFrom', 'items', 'createdAt', 'status']) && newData.child('company').isString() && newData.child('company').val().length > 0 && newData.child('company').val().length <= 150 && newData.child('email').isString() && newData.child('email').val().matches(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/) && newData.child('deliveryDate').isString() && newData.child('arriveFrom').isString() && newData.child('items').hasChildren() && newData.child('status').val() === 'new'",
+        "emailSentAt": { ".validate": "newData.isNumber()" }
+      }
+    }
+  }
+}
