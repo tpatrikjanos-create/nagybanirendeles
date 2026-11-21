@@ -428,11 +428,14 @@ label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
    1. BEÁLLÍTÁSOK
    ========================================================= */
 const FIREBASE_CONFIG = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "YOUR_PROJECT",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDlwu2Q_y6sP-_8ObwXjV3suj1FWiowzUQ",
+  authDomain: "nagybanirendeles-66836.firebaseapp.com",
+  /* Ha az adatbázis nem Europe-West1 régióban van, a pontos cím a Firebase console → Realtime Database oldal tetején látszik. */
+  databaseURL: "https://nagybanirendeles-66836-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "nagybanirendeles-66836",
+  storageBucket: "nagybanirendeles-66836.firebasestorage.app",
+  messagingSenderId: "888196529759",
+  appId: "1:888196529759:web:bcdb9bc71b3c0829f5a5ea"
 };
 /* PHP-szkript. Ugyanazon a tárhelyen: "send-order.php".
    GitHub Pages-ről: "https://nagybanigastro.hu/send-order.php" */
@@ -2159,7 +2162,11 @@ async function saveFirebase(order){
     return;
   }
   if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
-  await firebase.database().ref("orders").push(order);
+  /* Ha a Firebase 8 mp-en belül nem válaszol, nem várunk tovább (a PHP-napló úgyis rögzítette). */
+  await Promise.race([
+    firebase.database().ref("orders").push(order),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("Firebase időtúllépés")), 8000))
+  ]);
 }
 let sending = false;
 async function submit(){
