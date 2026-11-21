@@ -13,7 +13,7 @@
 // ================= Beállítások =================
 const FROM_EMAIL   = 'rendeles@nagybanigastro.hu';
 const FROM_NAME    = 'Nagybani Gastro Zrt.';
-const NOTIFY_EMAIL = '';          // később: értesítő a cégnek új rendelésről, pl. 'rendeles@nagybanigastro.hu'
+const NOTIFY_EMAIL = 'info@nagybanigastro.hu';  // értesítő a cégnek minden új rendelésről
 const ALLOWED_ORIGINS = [
     'https://nagybanigastro.hu',
     'https://www.nagybanigastro.hu',
