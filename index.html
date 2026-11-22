@@ -89,6 +89,21 @@ button{cursor:pointer}
 .item:disabled .add{display:none}
 .empty{color:var(--muted);padding:36px 0;text-align:center}
 
+/* Kép, nagyítás */
+.thumb{padding:0!important;overflow:hidden;background:#fff!important;cursor:zoom-in;box-shadow:inset 0 0 0 1px var(--line)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.zoom{position:fixed;z-index:120;width:260px;height:260px;border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 24px 60px -18px rgba(0,0,0,.5);pointer-events:none;opacity:0;transform:scale(.92);transition:opacity .15s,transform .15s}
+.zoom.on{opacity:1;transform:none}
+.zoom img{width:100%;height:100%;object-fit:cover}
+.lightbox{position:fixed;inset:0;z-index:130;background:rgba(10,20,12,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;opacity:0;pointer-events:none;transition:opacity .2s}
+.lightbox.on{opacity:1;pointer-events:auto}
+.lightbox img{max-width:min(92vw,640px);max-height:72vh;border-radius:18px;object-fit:contain;background:#fff}
+.lightbox p{color:#fff;font-weight:600;font-size:17px;margin:0;text-align:center}
+.lightbox small{color:#b9d79a;font-size:13px}
+.item .tag{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.custom-card{border:1.5px dashed #c9d5b5!important;background:transparent!important;box-shadow:none!important}
+.dev-link{display:block;margin:40px auto 0;text-align:center;font-size:13px;color:#9aa78c;text-decoration:none}
+.dev-link:hover{color:var(--green-d)}
 /* Szállítólevél */
 .slip{background:#fff;border-radius:8px 8px 0 0;position:relative;box-shadow:0 18px 40px -26px rgba(22,56,27,.55)}
 .slip::before{content:"";display:block;height:7px;border-radius:8px 8px 0 0;background:linear-gradient(90deg,var(--green),var(--pepper),var(--carrot),var(--tomato))}
@@ -99,6 +114,8 @@ button{cursor:pointer}
 .lines{list-style:none;margin:0;padding:0;border-top:2px dashed var(--line)}
 .lines li{display:flex;align-items:center;gap:8px;border-bottom:1px dashed var(--line)}
 .lines .edit{flex:1;display:flex;justify-content:space-between;gap:10px;padding:11px 0;background:none;border:0;text-align:left;font-size:15px;min-width:0}
+.lines .edit span small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.lines .edit i.cx{font-style:normal;font-size:11.5px;font-weight:700;color:#fff;background:#9aa78c;border-radius:999px;padding:1px 7px;margin-left:4px}
 .lines .edit b{white-space:nowrap;color:var(--green-d);font-variant-numeric:tabular-nums}
 .lines .del{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:#9aa78c;font-size:20px}
 .lines .del:hover{background:#fdeceb;color:var(--tomato)}
@@ -179,6 +196,13 @@ button{cursor:pointer}
 .grid4 button:active{transform:scale(.96)}
 .grid4 button.on{background:var(--forest);border-color:var(--forest);color:#fff}
 .quick{margin-top:10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts button{min-height:44px;padding:0 16px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-weight:600;font-size:15px}
+.opts button.on{background:var(--forest);border-color:var(--forest);color:#fff}
+.opts button:active{transform:scale(.96)}
+.opts.bad button{border-color:#f3c9c2}
+.lbl small{font-weight:500;color:var(--muted)}
+#p-tile.thumb{cursor:zoom-in}
 .p-actions{display:flex;gap:10px;margin-top:22px}
 .p-actions .btn{flex:1}
 .p-actions .btn.danger{flex:0 0 auto;background:#fff;color:var(--tomato);border:1.5px solid #f3c9c2}
@@ -291,6 +315,7 @@ label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
           <nav class="chips" id="chips" aria-label="Kategóriák"></nav>
         </div>
         <div id="list"></div>
+        <a class="dev-link" href="admin.html">Fejlesztői mód</a>
       </div>
       <aside class="aside">
         <div class="slip"><div class="slip-in">
@@ -394,6 +419,14 @@ label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
     <div><h3 id="p-name"></h3><small id="p-cat"></small></div>
     <button class="x" type="button" data-close aria-label="Bezárás">×</button>
   </div>
+  <div id="p-custom" hidden>
+    <div class="lbl">Milyen terméket kér?</div>
+    <input class="field" id="p-cname" maxlength="80" placeholder="pl. lila spárga, shiitake gomba" autocomplete="off">
+  </div>
+  <div id="p-var" hidden>
+    <div class="lbl" id="p-var-lbl"></div>
+    <div class="opts" id="p-vars"></div>
+  </div>
   <div class="lbl">Mennyiség</div>
   <div class="qty-big">
     <button type="button" id="p-dec" aria-label="Csökkentés">−</button>
@@ -402,7 +435,9 @@ label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
   </div>
   <div class="grid4 quick" id="p-quick"></div>
   <div class="lbl">Mértékegység</div>
-  <div class="grid4" id="p-units"></div>
+  <div class="opts" id="p-units"></div>
+  <div class="lbl">Megjegyzés <small>(nem kötelező)</small></div>
+  <input class="field" id="p-note" maxlength="120" placeholder="pl. tölteni való, kisszemű, extra szép" autocomplete="off">
   <p class="p-err" id="p-err"></p>
   <div class="p-actions">
     <button class="btn danger" type="button" id="p-del">Törlés</button>
@@ -422,6 +457,8 @@ label{display:block;font-size:14px;font-weight:700;margin:14px 0 6px}
 </div>
 
 <div class="toast" id="toast" role="status"></div>
+<div class="zoom" id="zoom" aria-hidden="true"><img alt=""></div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Termékkép"><img alt=""><p></p><small>Koppintson a bezáráshoz</small></div>
 
 <script>
 /* =========================================================
@@ -446,7 +483,6 @@ const TURNSTILE_SITEKEY = "";
 const TZ = "Europe/Budapest";
 const CUTOFF_HOUR = 13;   // tisztított áru: 13:00-ig leadva másnapra
 const DAYS_AHEAD = 14;
-const UNITS = ["kg","db","láda","doboz","csomag","csomó","köteg","vödör"];
 const QUICK = [1,2,3,5,10,15,20,50];
 const PRESETS = ["06:00","07:00","08:00","10:00"];
 const HOURS = Array.from({length:17}, (_,i)=> String(i+5).padStart(2,"0"));   // 05–21
@@ -469,6 +505,7 @@ const ICONS = {
   egg:`<ellipse cx="16" cy="17.5" rx="8.5" ry="11" fill="#f6e6cb" stroke="#d9a066" stroke-width="1.6"/><ellipse cx="13" cy="13" rx="2.4" ry="3.6" fill="#fff" opacity=".8"/>`,
   sprout:`<path d="M16 29v-11" stroke="#4f8a27" stroke-width="2.4" stroke-linecap="round"/><path d="M16 18c-1-6-6-8.5-11-7.5 1 5.5 6 8.6 11 7.5z" fill="#6fa838"/><path d="M16 15.5c1-5.5 5.6-8.2 10.5-7.2-1 5.2-5.6 8.2-10.5 7.2z" fill="#8fc04f"/><path d="M9 29h14" stroke="#a8683a" stroke-width="2.4" stroke-linecap="round"/>`,
   jar:`<rect x="8" y="10.5" width="16" height="18" rx="3.5" fill="#b896d0"/><rect x="7" y="5.5" width="18" height="5.5" rx="1.6" fill="#6b3f8f"/><ellipse cx="13" cy="20" rx="2.6" ry="5.5" transform="rotate(15 13 20)" fill="#5f9a2c"/><ellipse cx="19.5" cy="19" rx="2.6" ry="5.5" transform="rotate(-12 19.5 19)" fill="#4f8a27"/><circle cx="16" cy="25.5" r="1.5" fill="#e0442f"/>`,
+  bag:`<path d="M7 12h18l-1.6 15.2a2 2 0 0 1-2 1.8H10.6a2 2 0 0 1-2-1.8z" fill="#c98f4e"/><path d="M11.5 12V9.5a4.5 4.5 0 0 1 9 0V12" stroke="#8f5f2c" stroke-width="2.2" fill="none"/><path d="M16 16.5v7M12.5 20h7" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>`,
   knife:`<path d="M5.5 23.5 21 8c2.3-.5 3.6.8 3.1 3.1L9.4 25.6z" fill="#cfd8dc"/><path d="M9.4 25.6 5.5 23.5" stroke="#9fb0b6" stroke-width="1.2"/><rect x="20.6" y="4" width="4.6" height="9.5" rx="2.2" transform="rotate(45 22.9 8.75)" fill="#3b8ea5"/><circle cx="22.5" cy="23" r="5.2" fill="#f2d49a"/><circle cx="21" cy="21.5" r="1.6" fill="#fff" opacity=".6"/>`
 };
 const icon = k => `<svg class="ic" viewBox="0 0 32 32" aria-hidden="true">${ICONS[k] || ICONS.cabbage}</svg>`;
@@ -486,7 +523,8 @@ const CAT_STYLE = {
   "Tojások":["egg","#d9a066"],
   "Csíra":["sprout","#6fa838"],
   "Savanyúságok":["jar","#8a4fb0"],
-  "Konyhakész, tisztított termékek":["knife","#3b8ea5"]
+  "Konyhakész, tisztított termékek":["knife","#3b8ea5"],
+  "Egyéb":["bag","#5f6d55"]
 };
 const catStyle = c => CAT_STYLE[c] || ["cabbage","#6fa838"];
 const catSlug = c => "cat-" + c.normalize("NFKD").replace(/[^\w]+/g,"-").toLowerCase();
@@ -530,1219 +568,20 @@ function truckSVG(){
 /* =========================================================
    4. TERMÉKEK (az Excelből generálva)
    ========================================================= */
-const PRODUCTS = [
- {
-  "id": "sargarepa",
-  "name": "Sárgarépa",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "feherrepa",
-  "name": "Fehérrépa",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "zellergumo",
-  "name": "Zellergumó",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "brokkoli-jeges-spanyol",
-  "name": "Brokkoli Jeges - Spanyol",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "chili",
-  "name": "Chili",
-  "cat": "Zöldségek",
-  "unit": "doboz",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "cekla",
-  "name": "Cékla",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "karfiol",
-  "name": "Karfiol",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "karalabe",
-  "name": "Karalábé",
-  "cat": "Zöldségek",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "piros-retek",
-  "name": "Piros retek",
-  "cat": "Zöldségek",
-  "unit": "csomag",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "angolzeller",
-  "name": "Angolzeller",
-  "cat": "Zöldségek",
-  "unit": "csomó",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "gyomber",
-  "name": "Gyömbér",
-  "cat": "Zöldségek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "burgonya-francia",
-  "name": "Burgonya Francia",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "parazs-burgonya",
-  "name": "Parázs burgonya",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "burgonya-sarga",
-  "name": "Burgonya (sárga)",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "edesburgonya",
-  "name": "Édesburgonya",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "fokhagyma",
-  "name": "Fokhagyma",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "lilahagyma",
-  "name": "Lilahagyma",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "porehagyma-uj",
-  "name": "Póréhagyma ÚJ",
-  "cat": "Burgonya, hagyma",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "ujhagyma",
-  "name": "Újhagyma",
-  "cat": "Burgonya, hagyma",
-  "unit": "csomag",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "voroshagyma",
-  "name": "Vöröshagyma",
-  "cat": "Burgonya, hagyma",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "feher-kaposzta",
-  "name": "Fehér káposzta",
-  "cat": "Káposzta, saláta",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kelkaposzta",
-  "name": "Kelkáposzta",
-  "cat": "Káposzta, saláta",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "voros-kaposzta",
-  "name": "Vörös káposzta",
-  "cat": "Káposzta, saláta",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "cekla-level",
-  "name": "Cékla levél",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "fejessalata",
-  "name": "Fejessaláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "madarsalata",
-  "name": "Madársaláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "jegsalata",
-  "name": "Jégsaláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "lolo-salata-piros-zold",
-  "name": "Lolo saláta – piros, zöld",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "salata-mix",
-  "name": "Saláta mix",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "radichio-salata",
-  "name": "Radichio saláta",
-  "cat": "Káposzta, saláta",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "romai-salata",
-  "name": "Római saláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "bebispenot",
-  "name": "Bébispenót",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "rukkola-salata",
-  "name": "Rukkola saláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "frize-salata",
-  "name": "Frize saláta",
-  "cat": "Káposzta, saláta",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "afonya-125-g",
-  "name": "Áfonya (125 g)",
-  "cat": "Gyümölcs",
-  "unit": "doboz",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "alma-golden",
-  "name": "Alma golden",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "alma-idared",
-  "name": "Alma idared",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "alma-zold",
-  "name": "Alma zöld",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "alma-starking",
-  "name": "Alma Starking",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "import-eper",
-  "name": "Import eper",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "gorogdinnye",
-  "name": "Görögdinnye",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "–"
- },
- {
-  "id": "korte",
-  "name": "Körte",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "malna-125-g",
-  "name": "Málna (125 g)",
-  "cat": "Gyümölcs",
-  "unit": "doboz",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "mezdinnye",
-  "name": "Mézdinnye",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "nektarin",
-  "name": "Nektarin",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "oszibarack",
-  "name": "Őszibarack",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "ribizli-125-g",
-  "name": "Ribizli (125 g)",
-  "cat": "Gyümölcs",
-  "unit": "doboz",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "sargabarack",
-  "name": "Sárgabarack",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "sargadinnye",
-  "name": "Sárgadinnye",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "szeder-125-g",
-  "name": "Szeder (125 g)",
-  "cat": "Gyümölcs",
-  "unit": "doboz",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "szilva-ringlo",
-  "name": "Szilva ringló",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "szilva",
-  "name": "Szilva",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "szolo-feher",
-  "name": "Szőlő – fehér",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "szolo-rose",
-  "name": "Szőlő – rosé",
-  "cat": "Gyümölcs",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "ananasz-big",
-  "name": "Ananász big",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "ananasz-normal",
-  "name": "Ananász normal",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "avokado",
-  "name": "Avokádó",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "banan",
-  "name": "Banán",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "citrom",
-  "name": "Citrom",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csillaggyumolcs",
-  "name": "Csillaggyümölcs",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "ár egyeztetés"
- },
- {
-  "id": "datolya-aszalt",
-  "name": "Datolya aszalt",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "fuge-aszalt",
-  "name": "Füge aszalt",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "–"
- },
- {
-  "id": "granatalma",
-  "name": "Gránátalma",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "grapefruit",
-  "name": "Grapefruit",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kiwi",
-  "name": "Kiwi",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "lime",
-  "name": "Lime",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "mandarin",
-  "name": "Mandarin",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "ár egyeztetés"
- },
- {
-  "id": "mango",
-  "name": "Mangó",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "narancs-extra",
-  "name": "Narancs extra",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "narancs",
-  "name": "Narancs",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "physalis",
-  "name": "Physalis",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "piros-grapefruit",
-  "name": "Piros grapefruit",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "pomelo",
-  "name": "Pomelo",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "ár egyeztetés"
- },
- {
-  "id": "sarkanygyumolcs",
-  "name": "Sárkánygyümölcs",
-  "cat": "Egzotikus gyümölcsök",
-  "unit": "db",
-  "orderable": false,
-  "cleaned": false,
-  "priceNote": "ár egyeztetés"
- },
- {
-  "id": "hegyes-eros-paprika",
-  "name": "Hegyes erős paprika",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kaliforniai-paprika-piros-sarga-zold",
-  "name": "Kaliforniai paprika (piros, sárga, zöld)",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kapia-paprika",
-  "name": "Kápia paprika",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "koktelparadicsom",
-  "name": "Koktélparadicsom",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "lecsopaprika",
-  "name": "Lecsópaprika",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "padlizsan",
-  "name": "Padlizsán",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "paradicsom",
-  "name": "Paradicsom",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "tv-paprika",
-  "name": "Tv-paprika",
-  "cat": "Paprika, paradicsom, padlizsán",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "cukkini",
-  "name": "Cukkini",
-  "cat": "Uborka, cukkini, tök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kigyouborka",
-  "name": "Kígyóuborka",
-  "cat": "Uborka, cukkini, tök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "sutotok",
-  "name": "Sütőtök",
-  "cat": "Uborka, cukkini, tök",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csiperke-gomba-i-o",
-  "name": "Csiperke gomba I.o.",
-  "cat": "Gomba",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csiperke-gomba-i-o-apro",
-  "name": "Csiperke gomba I.o. apró",
-  "cat": "Gomba",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "laska-gomba",
-  "name": "Laska gomba",
-  "cat": "Gomba",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "barna-csiperke",
-  "name": "Barna csiperke",
-  "cat": "Gomba",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "bazsalikom",
-  "name": "Bazsalikom",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "francia-petrezselyem",
-  "name": "Francia petrezselyem",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kakukkfu",
-  "name": "Kakukkfű",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kapor",
-  "name": "Kapor",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "koriander",
-  "name": "Koriander",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "menta",
-  "name": "Menta",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "snidling",
-  "name": "Snidling",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "petrezselyem",
-  "name": "Petrezselyem",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "rozmaring",
-  "name": "Rozmaring",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "zsalya",
-  "name": "Zsálya",
-  "cat": "Fűszernövények",
-  "unit": "köteg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "daralt-dio",
-  "name": "Darált dió",
-  "cat": "Száraz áru",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "diobel-extra",
-  "name": "Dióbél extra",
-  "cat": "Száraz áru",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "lencse",
-  "name": "Lencse",
-  "cat": "Száraz áru",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "tarkabab",
-  "name": "Tarkabab",
-  "cat": "Száraz áru",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "sargaborso",
-  "name": "Sárgaborsó",
-  "cat": "Száraz áru",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "tojas-fertotlenitett-ozon-m",
-  "name": "Tojás – fertőtlenített, ózon \"M\"",
-  "cat": "Tojások",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "tojas-fertotlenitett-ozon-l",
-  "name": "Tojás – fertőtlenített, ózon \"L\"",
-  "cat": "Tojások",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csira",
-  "name": "Csíra",
-  "cat": "Csíra",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "zoldborso-csira",
-  "name": "Zöldborsó csíra",
-  "cat": "Csíra",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "mungobab-csira",
-  "name": "Mungóbab csíra",
-  "cat": "Csíra",
-  "unit": "db",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "almapaprika-5-l",
-  "name": "Almapaprika (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "cekla-5-l",
-  "name": "Cékla (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csalamade-5-l",
-  "name": "Csalamádé (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "csemege-uborka-5-l",
-  "name": "Csemege uborka (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "egesz-kaposzta-5-l",
-  "name": "Egész káposzta (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "kovaszos-uborka-5-l",
-  "name": "Kovászos uborka (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "pepperoni-5-l",
-  "name": "Pepperoni (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "vagott-kaposzta-5-l",
-  "name": "Vágott káposzta (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "vegyes-darabos-5-l",
-  "name": "Vegyes-darabos (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "gyongyhagyma-5-l",
-  "name": "Gyöngyhagyma (5 L)",
-  "cat": "Savanyúságok",
-  "unit": "vödör",
-  "orderable": true,
-  "cleaned": false,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-burgonya-egesz",
-  "name": "Tisztított burgonya, egész",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-burgonya-gepi-feldolgozott",
-  "name": "Tisztított burgonya, gépi feldolgozott",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-burgonya-kezi-kocka",
-  "name": "Tisztított burgonya kézi kocka",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-burgonya-cikk",
-  "name": "Tisztított burgonya cikk",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-voroshagyma",
-  "name": "Tisztított vöröshagyma",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-voroshagyma-kocka-szelet",
-  "name": "Tisztított vöröshagyma kocka, szelet",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-lilahagyma",
-  "name": "Tisztított lilahagyma",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-sargarepa",
-  "name": "Tisztított sárgarépa",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-feherrepa",
-  "name": "Tisztított fehérrépa",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-zeller",
-  "name": "Tisztított zeller",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-fejeskaposzta",
-  "name": "Tisztított fejeskáposzta",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-kelkaposzta",
-  "name": "Tisztított kelkáposzta",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-voroskaposzta",
-  "name": "Tisztított vöröskáposzta",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-karalabe",
-  "name": "Tisztított karalábé",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- },
- {
-  "id": "tisztitott-fokhagyma",
-  "name": "Tisztított fokhagyma",
-  "cat": "Konyhakész, tisztított termékek",
-  "unit": "kg",
-  "orderable": true,
-  "cleaned": true,
-  "priceNote": null
- }
-];
+/* Alap terméklista. Ha a tárhelyen van catalog.json (a fejlesztői mód menti), az felülírja. */
+const DEFAULT_CATALOG = {"version":1,"updatedAt":"2026-11-22T00:00:00Z","units":["kg","db","láda","doboz","csomag","csomó","köteg","vödör 5 L","vödör 10 L"],"products":[{"id":"sargarepa","name":"Sárgarépa","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"feherrepa","name":"Fehérrépa","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"zellergumo","name":"Zellergumó","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"brokkoli-jeges-spanyol","name":"Brokkoli Jeges - Spanyol","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"chili","name":"Chili","cat":"Zöldségek","units":["doboz","kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"cekla","name":"Cékla","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"karfiol","name":"Karfiol","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"karalabe","name":"Karalábé","cat":"Zöldségek","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"piros-retek","name":"Piros retek","cat":"Zöldségek","units":["csomag"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"angolzeller","name":"Angolzeller","cat":"Zöldségek","units":["csomó"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"gyomber","name":"Gyömbér","cat":"Zöldségek","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"bebi-zoldseg","name":"Bébi zöldség","cat":"Zöldségek","units":["kg"],"variants":{"label":"Típus","options":["cukkini","répa","kukorica","patiszon"]},"orderable":true,"cleaned":false,"image":""},{"id":"burgonya-francia","name":"Burgonya Francia","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"parazs-burgonya","name":"Parázs burgonya","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"burgonya-sarga","name":"Burgonya (sárga)","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"edesburgonya","name":"Édesburgonya","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"fokhagyma","name":"Fokhagyma","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"lilahagyma","name":"Lilahagyma","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"porehagyma-uj","name":"Póréhagyma ÚJ","cat":"Burgonya, hagyma","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"ujhagyma","name":"Újhagyma","cat":"Burgonya, hagyma","units":["csomag"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"voroshagyma","name":"Vöröshagyma","cat":"Burgonya, hagyma","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"feher-kaposzta","name":"Fehér káposzta","cat":"Káposzta, saláta","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kelkaposzta","name":"Kelkáposzta","cat":"Káposzta, saláta","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"voros-kaposzta","name":"Vörös káposzta","cat":"Káposzta, saláta","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"cekla-level","name":"Cékla levél","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"fejessalata","name":"Fejessaláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"madarsalata","name":"Madársaláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"jegsalata","name":"Jégsaláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"lolo-salata-piros-zold","name":"Lolo saláta – piros, zöld","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"salata-mix","name":"Saláta mix","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"radichio-salata","name":"Radichio saláta","cat":"Káposzta, saláta","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"romai-salata","name":"Római saláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"bebispenot","name":"Bébispenót","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"rukkola-salata","name":"Rukkola saláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"frize-salata","name":"Frize saláta","cat":"Káposzta, saláta","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"pak-choi","name":"Pak choi","cat":"Káposzta, saláta","units":["kg","db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"fodros-kel","name":"Fodros kel","cat":"Káposzta, saláta","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"afonya-125-g","name":"Áfonya (125 g)","cat":"Gyümölcs","units":["doboz"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"alma-golden","name":"Alma golden","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"alma-idared","name":"Alma idared","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"alma-zold","name":"Alma zöld","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"alma-starking","name":"Alma Starking","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"import-eper","name":"Import eper","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"gorogdinnye","name":"Görögdinnye","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"korte","name":"Körte","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"malna-125-g","name":"Málna (125 g)","cat":"Gyümölcs","units":["doboz"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"mezdinnye","name":"Mézdinnye","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"nektarin","name":"Nektarin","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"oszibarack","name":"Őszibarack","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"ribizli-125-g","name":"Ribizli (125 g)","cat":"Gyümölcs","units":["doboz"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"sargabarack","name":"Sárgabarack","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"sargadinnye","name":"Sárgadinnye","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szeder-125-g","name":"Szeder (125 g)","cat":"Gyümölcs","units":["doboz"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szilva-ringlo","name":"Szilva ringló","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szilva","name":"Szilva","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szolo-feher","name":"Szőlő – fehér","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szolo-rose","name":"Szőlő – rosé","cat":"Gyümölcs","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"fuge-friss","name":"Füge, friss","cat":"Gyümölcs","units":["kg","db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"ananasz-big","name":"Ananász big","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"ananasz-normal","name":"Ananász normal","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"avokado","name":"Avokádó","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"banan","name":"Banán","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"citrom","name":"Citrom","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csillaggyumolcs","name":"Csillaggyümölcs","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"datolya-aszalt","name":"Datolya aszalt","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"fuge-aszalt","name":"Füge aszalt","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"granatalma","name":"Gránátalma","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"grapefruit","name":"Grapefruit","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kiwi","name":"Kiwi","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"lime","name":"Lime","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"mandarin","name":"Mandarin","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"mango","name":"Mangó","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"narancs-extra","name":"Narancs extra","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"narancs","name":"Narancs","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"physalis","name":"Physalis","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"piros-grapefruit","name":"Piros grapefruit","cat":"Egzotikus gyümölcsök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"pomelo","name":"Pomelo","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"sarkanygyumolcs","name":"Sárkánygyümölcs","cat":"Egzotikus gyümölcsök","units":["db","láda"],"variants":null,"orderable":false,"cleaned":false,"image":""},{"id":"hegyes-eros-paprika","name":"Hegyes erős paprika","cat":"Paprika, paradicsom, padlizsán","units":["db","kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kaliforniai-paprika-piros-sarga-zold","name":"Kaliforniai paprika","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":{"label":"Szín","options":["vegyes","piros","sárga","zöld"]},"orderable":true,"cleaned":false,"image":""},{"id":"kapia-paprika","name":"Kápia paprika","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"koktelparadicsom","name":"Koktélparadicsom","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"koktelparadicsom-sarga","name":"Koktélparadicsom, sárga","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"koktelparadicsom-ovalis-daterini","name":"Koktélparadicsom, ovális (Daterini)","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"lecsopaprika","name":"Lecsópaprika","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"padlizsan","name":"Padlizsán","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"paradicsom","name":"Paradicsom","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tv-paprika","name":"Tv-paprika","cat":"Paprika, paradicsom, padlizsán","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"cukkini","name":"Cukkini","cat":"Uborka, cukkini, tök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"cukkini-sarga","name":"Cukkini, sárga","cat":"Uborka, cukkini, tök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kigyouborka","name":"Kígyóuborka","cat":"Uborka, cukkini, tök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"sutotok","name":"Sütőtök","cat":"Uborka, cukkini, tök","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csiperke-gomba-i-o","name":"Csiperke gomba I.o.","cat":"Gomba","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csiperke-gomba-i-o-apro","name":"Csiperke gomba I.o. apró","cat":"Gomba","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"laska-gomba","name":"Laska gomba","cat":"Gomba","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"barna-csiperke","name":"Barna csiperke","cat":"Gomba","units":["kg","láda"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"bazsalikom","name":"Bazsalikom","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"francia-petrezselyem","name":"Francia petrezselyem","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kakukkfu","name":"Kakukkfű","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kapor","name":"Kapor","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"koriander","name":"Koriander","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"menta","name":"Menta","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"snidling","name":"Snidling","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"petrezselyem","name":"Petrezselyem","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"rozmaring","name":"Rozmaring","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"zsalya","name":"Zsálya","cat":"Fűszernövények","units":["köteg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"eheto-virag-mix","name":"Ehető virág mix","cat":"Fűszernövények","units":["doboz"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"daralt-dio","name":"Darált dió","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"diobel-extra","name":"Dióbél extra","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"lencse","name":"Lencse","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tarkabab","name":"Tarkabab","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"sargaborso","name":"Sárgaborsó","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"szezammag","name":"Szezámmag","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"gyongybab","name":"Gyöngybab","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tokmag","name":"Tökmag","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"gersli-arpagyongy","name":"Gersli (árpagyöngy)","cat":"Száraz áru","units":["kg"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tojas-fertotlenitett-ozon-m","name":"Tojás – fertőtlenített, ózon \"M\"","cat":"Tojások","units":["db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tojas-fertotlenitett-ozon-l","name":"Tojás – fertőtlenített, ózon \"L\"","cat":"Tojások","units":["db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csira","name":"Csíra","cat":"Csíra","units":["db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"zoldborso-csira","name":"Zöldborsó csíra","cat":"Csíra","units":["db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"mungobab-csira","name":"Mungóbab csíra","cat":"Csíra","units":["db"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"almapaprika-5-l","name":"Almapaprika","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kaposztaval-toltott-almapaprika","name":"Káposztával töltött almapaprika","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"edes-almapaprika","name":"Édes almapaprika","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"cekla-5-l","name":"Cékla","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csalamade-5-l","name":"Csalamádé","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"csemege-uborka-5-l","name":"Csemege uborka","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"egesz-kaposzta-5-l","name":"Egész káposzta","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"kovaszos-uborka-5-l","name":"Kovászos uborka","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"pepperoni-5-l","name":"Pepperoni","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"vagott-kaposzta-5-l","name":"Vágott káposzta","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"vegyes-darabos-5-l","name":"Vegyes-darabos","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"gyongyhagyma-5-l","name":"Gyöngyhagyma","cat":"Savanyúságok","units":["vödör 5 L","vödör 10 L"],"variants":null,"orderable":true,"cleaned":false,"image":""},{"id":"tisztitott-burgonya-egesz","name":"Tisztított burgonya","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","kézi kocka","karika","reszelt","steak","cikk"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-voroshagyma","name":"Tisztított vöröshagyma","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","szelet"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-lilahagyma","name":"Tisztított lilahagyma","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","szelet"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-sargarepa","name":"Tisztított sárgarépa","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","karika","reszelt","julienne"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-feherrepa","name":"Tisztított fehérrépa","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","karika","reszelt","julienne"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-zeller","name":"Tisztított zeller","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","kocka","reszelt","julienne"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-fejeskaposzta","name":"Tisztított fejeskáposzta","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":{"label":"Vágás","options":["egész","reszelt","szelet"]},"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-kelkaposzta","name":"Tisztított kelkáposzta, szeletelt","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":null,"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-voroskaposzta","name":"Tisztított vöröskáposzta, szeletelt","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":null,"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-karalabe","name":"Tisztított karalábé","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":null,"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-fokhagyma","name":"Tisztított fokhagyma","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":null,"orderable":true,"cleaned":true,"image":""},{"id":"tisztitott-kigyouborka-szeletelt","name":"Tisztított kígyóuborka, szeletelt","cat":"Konyhakész, tisztított termékek","units":["kg"],"variants":null,"orderable":true,"cleaned":true,"image":""}]};
+let CATALOG = DEFAULT_CATALOG, PRODUCTS = [], byId = {};
+function useCatalog(c){
+  CATALOG = c;
+  PRODUCTS = c.products.filter(p => !p.hidden && p.units && p.units.length);
+  byId = Object.fromEntries(PRODUCTS.map(p => [p.id, p]));
+}
+useCatalog(DEFAULT_CATALOG);
+const ALL_UNITS = () => CATALOG.units || ["kg","db","láda","doboz","csomag","csomó","köteg"];
 
 /* =========================================================
    5. ÁLLAPOT, SEGÉDEK
    ========================================================= */
-const byId = Object.fromEntries(PRODUCTS.map(p=>[p.id,p]));
 const state = { step:1, q:"", cart:{}, last:null, date:"", hour:"", minute:"", timeTouched:false, tsToken:"" };
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -1770,8 +609,16 @@ const WD_S = ["V","H","K","Sze","Cs","P","Szo"];
 const MON = ["jan.","febr.","márc.","ápr.","máj.","jún.","júl.","aug.","szept.","okt.","nov.","dec."];
 const fmtDate = iso => { const d = isoDate(iso); return `${d.getUTCFullYear()}. ${MON[d.getUTCMonth()]} ${d.getUTCDate()}., ${WD[d.getUTCDay()]}`; };
 
-const cartIds = () => Object.keys(state.cart).filter(id => byId[id]);
-const cleanedInCart = () => cartIds().some(id => byId[id].cleaned);
+/* Kosár: soronként { pid, variant, qty, unit, note } vagy egyéb termék: { custom, name, qty, unit, note } */
+const lineKeys = () => Object.keys(state.cart).filter(k => state.cart[k].custom || byId[state.cart[k].pid]);
+const cartIds = lineKeys;
+const lineProduct = l => l.custom ? null : byId[l.pid];
+const lineName = l => l.custom ? l.name : byId[l.pid].name + (l.variant ? ` – ${l.variant}` : "");
+const lineCleaned = l => !l.custom && !!byId[l.pid]?.cleaned;
+const cleanedInCart = () => lineKeys().some(k => lineCleaned(state.cart[k]));
+const linesOf = pid => lineKeys().filter(k => state.cart[k].pid === pid);
+const lineKey = (pid, variant) => variant ? `${pid}|${variant}` : pid;
+const coarse = () => matchMedia("(hover:none), (pointer:coarse)").matches;
 /* Legkorábbi szállítási nap: tisztított áru 13:00-ig holnapra, utána holnaputánra. Vasárnap nincs szállítás. */
 function minDate(){
   const now = bpNow();
@@ -1813,17 +660,29 @@ function renderChips(){
   $("#chips").innerHTML = cats.map(c => { const [k,col] = catStyle(c);
     return `<button class="chip" type="button" style="--c:${col}" data-cat="${esc(c)}"><span class="t">${icon(k)}</span>${esc(c)}</button>`; }).join("");
 }
-function itemHTML(p){
-  const line = state.cart[p.id];
+function tileHTML(p){
   const [k] = catStyle(p.cat);
+  return p.image
+    ? `<span class="tile thumb" data-zoom="${esc(p.image)}" data-alt="${esc(p.name)}"><img src="${esc(p.image)}" alt="" loading="lazy"></span>`
+    : `<span class="tile">${icon(k)}</span>`;
+}
+function itemHTML(p){
+  const keys = linesOf(p.id);
   let tag = "";
   if(!p.orderable) tag = `<span class="tag warn">Ár egyeztetés, nem rendelhető</span>`;
-  else if(p.cleaned) tag = `<span class="tag">Tisztított · ${bpNow().h < CUTOFF_HOUR ? "holnapra 13:00-ig" : "holnaputántól"}</span>`;
-  const right = line ? `<span class="qty">${fmtQty(line.qty)} ${esc(line.unit)}</span>` : `<span class="add" aria-hidden="true">+</span>`;
-  return `<li><button class="item ${line?"in":""}" type="button" data-id="${p.id}" ${p.orderable?"":"disabled"}
-    aria-label="${esc(p.name)}${line?`, ${fmtQty(line.qty)} ${esc(line.unit)}`:""}">
-    <span class="tile">${icon(k)}</span><span class="nm"><b>${esc(p.name)}</b>${tag}</span>${right}</button></li>`;
+  else if(p.cleaned) tag = `<span class="tag">Tisztított · ${bpNow().h < CUTOFF_HOUR ? "holnapra 13:00-ig" : "holnaputántól"}${p.variants ? " · " + esc(p.variants.options.length) + " vágás" : ""}</span>`;
+  else if(p.variants) tag = `<span class="tag">${esc(p.variants.label)}: ${esc(p.variants.options.join(", "))}</span>`;
+  let right = `<span class="add" aria-hidden="true">+</span>`;
+  if(keys.length === 1){ const l = state.cart[keys[0]]; right = `<span class="qty">${fmtQty(l.qty)} ${esc(l.unit)}</span>`; }
+  else if(keys.length > 1) right = `<span class="qty">${keys.length} tétel</span>`;
+  return `<li><button class="item ${keys.length?"in":""}" type="button" data-id="${esc(p.id)}" ${p.orderable?"":"disabled"}
+    aria-label="${esc(p.name)}${keys.length?`, ${keys.length} tétel a kocsiban`:""}">
+    ${tileHTML(p)}<span class="nm"><b>${esc(p.name)}</b>${tag}</span>${right}</button></li>`;
 }
+const customCard = () => `<section class="group" style="--c:#5f6d55"><ul class="items"><li>
+  <button class="item custom-card" type="button" data-custom><span class="tile">${icon("bag")}</span>
+  <span class="nm"><b>Nem találja, amit keres?</b><span class="tag">Írja be a termék nevét, és megnézzük, tudjuk-e hozni</span></span>
+  <span class="add" aria-hidden="true">+</span></button></li></ul></section>`;
 function renderList(){
   const q = state.q.trim().toLowerCase();
   const order = [], groups = {};
@@ -1832,12 +691,12 @@ function renderList(){
     if(!groups[p.cat]){ groups[p.cat] = []; order.push(p.cat); }
     groups[p.cat].push(p);
   }
-  $("#list").innerHTML = order.length
+  $("#list").innerHTML = (order.length
     ? order.map(c => { const [k,col] = catStyle(c);
         return `<section class="group" id="${catSlug(c)}" data-cat="${esc(c)}" style="--c:${col}">
           <div class="group-head"><div class="tile">${icon(k)}</div><h2>${esc(c)}<small>${groups[c].length} termék</small></h2></div>
           <ul class="items">${groups[c].map(itemHTML).join("")}</ul></section>`; }).join("")
-    : `<p class="empty">Nincs ilyen termék. Próbáljon más keresőszót.</p>`;
+    : `<p class="empty">Nincs ilyen termék a listában.</p>`) + customCard();
   $$("#chips .chip").forEach(ch => ch.hidden = !order.includes(ch.dataset.cat));
   observeGroups();
 }
@@ -1862,12 +721,12 @@ function setActiveChip(cat){
 
 /* Szállítólevél sorai */
 function linesHTML(){
-  const ids = cartIds();
-  if(!ids.length) return `<li class="none">Még üres. Koppintson egy termékre, és berakjuk a kocsiba.</li>`;
-  return ids.map(id => { const l = state.cart[id];
-    return `<li class="${id===state.last?"pop":""}">
-      <button class="edit" type="button" data-edit="${id}"><span>${esc(byId[id].name)}</span><b>${fmtQty(l.qty)} ${esc(l.unit)}</b></button>
-      <button class="del" type="button" data-del="${id}" aria-label="${esc(byId[id].name)} törlése">×</button></li>`; }).join("");
+  const keys = lineKeys();
+  if(!keys.length) return `<li class="none">Még üres. Koppintson egy termékre, és berakjuk a kocsiba.</li>`;
+  return keys.map(k => { const l = state.cart[k];
+    return `<li class="${k===state.last?"pop":""}">
+      <button class="edit" type="button" data-edit="${esc(k)}"><span>${esc(lineName(l))}${l.custom?'<i class="cx">egyéb</i>':""}${l.note?`<small>${esc(l.note)}</small>`:""}</span><b>${fmtQty(l.qty)} ${esc(l.unit)}</b></button>
+      <button class="del" type="button" data-del="${esc(k)}" aria-label="${esc(lineName(l))} törlése">×</button></li>`; }).join("");
 }
 function cartNote(){
   if(!cleanedInCart()) return "";
@@ -1876,7 +735,7 @@ function cartNote(){
 function renderCart(){
   const html = linesHTML(), note = cartNote();
   for(const k of ["a1","a2","s"]){ $("#lines-"+k).innerHTML = html; $("#note-"+k).textContent = note; }
-  const n = cartIds().length;
+  const n = lineKeys().length;
   $("#sum-text").textContent = `${n} tétel a szállítólevélen`;
   const badge = $("#truck-btn .badge");
   badge.textContent = n; badge.classList.toggle("on", n > 0);
@@ -1972,7 +831,8 @@ function resetBarTruck(){
 /* =========================================================
    10. PANELEK
    ========================================================= */
-let openSheet = null, editing = null, sheetUnit = "kg", lastFocus = null;
+let openSheet = null, lastFocus = null;
+const sheet = { pid:null, key:null, custom:false, unit:"kg", units:[], variant:"" };
 function showSheet(el){
   if(openSheet && openSheet !== el) openSheet.classList.remove("on");
   lastFocus = document.activeElement; openSheet = el;
@@ -1984,46 +844,89 @@ function closeSheet(){
   openSheet.classList.remove("on"); $("#scrim").classList.remove("on"); document.body.classList.remove("lock");
   openSheet = null; lastFocus?.focus?.({preventScroll:true});
 }
-function openProduct(id){
-  const p = byId[id];
+function openProduct(pid){
+  const p = byId[pid];
   if(!p || !p.orderable) return;
-  editing = id;
-  const line = state.cart[id];
-  const [k,col] = catStyle(p.cat);
-  $("#p-tile").innerHTML = icon(k); $("#p-tile").style.setProperty("--c", col);
-  $("#p-name").textContent = p.name;
-  $("#p-cat").textContent = p.cleaned ? `${p.cat} · legkorábban ${fmtShort(addDaysISOSkipSun(bpNow().iso, bpNow().h < CUTOFF_HOUR ? 1 : 2))}` : p.cat;
-  $("#p-qty").value = line ? fmtQty(line.qty) : "";
-  $("#p-qty").classList.remove("bad");
-  sheetUnit = line ? line.unit : p.unit;
+  const keys = linesOf(pid);
+  if(!p.variants && keys.length) return openLine(keys[0]);
+  fillSheet({ pid, key:null, custom:false, unit:p.units[0], variant:"", qty:"", note:"" });
+}
+function openLine(key){
+  const l = state.cart[key]; if(!l) return;
+  fillSheet({ pid:l.pid || null, key, custom:!!l.custom, unit:l.unit, variant:l.variant || "", qty:fmtQty(l.qty), note:l.note || "", name:l.name || "" });
+}
+function openCustom(){ fillSheet({ pid:null, key:null, custom:true, unit:"kg", variant:"", qty:"", note:"", name:"" }); }
+function fillSheet(s){
+  const p = s.pid ? byId[s.pid] : null;
+  Object.assign(sheet, { pid:s.pid, key:s.key, custom:s.custom, unit:s.unit, variant:s.variant });
+  const [k,col] = p ? catStyle(p.cat) : catStyle("Egyéb");
+  const tile = $("#p-tile");
+  tile.style.setProperty("--c", col);
+  tile.classList.toggle("thumb", !!(p && p.image));
+  tile.innerHTML = p && p.image ? `<img src="${esc(p.image)}" alt="">` : icon(k);
+  tile.dataset.zoom = p && p.image ? p.image : ""; tile.dataset.alt = p ? p.name : "";
+  $("#p-name").textContent = p ? p.name : "Egyéb termék";
+  $("#p-cat").textContent = !p ? "Ami nincs a listában"
+    : p.cleaned ? `${p.cat} · legkorábban ${fmtShort(addDaysISOSkipSun(bpNow().iso, bpNow().h < CUTOFF_HOUR ? 1 : 2))}` : p.cat;
+  $("#p-custom").hidden = !s.custom;
+  $("#p-cname").value = s.name || ""; $("#p-cname").classList.remove("bad");
+  sheet.units = p ? p.units : ALL_UNITS();
+  if(!sheet.units.includes(sheet.unit)) sheet.unit = sheet.units[0];
   renderUnits();
+  $("#p-var").hidden = !(p && p.variants);
+  if(p && p.variants){ $("#p-var-lbl").textContent = p.variants.label; renderVariants(); }
+  $("#p-qty").value = s.qty; $("#p-qty").classList.remove("bad");
+  $("#p-note").value = s.note || "";
   $("#p-err").textContent = "";
-  $("#p-del").hidden = !line;
-  $("#p-save").textContent = line ? "Módosítás mentése" : "Berakom a kocsiba";
+  $("#p-del").hidden = !s.key;
+  $("#p-save").textContent = s.key ? "Módosítás mentése" : "Berakom a kocsiba";
   showSheet($("#pSheet"));
+  if(s.custom) setTimeout(()=> $("#p-cname").focus(), 120);
 }
 function renderUnits(){
-  $("#p-units").innerHTML = UNITS.map(u => `<button type="button" data-unit="${u}" class="${u===sheetUnit?"on":""}" aria-pressed="${u===sheetUnit}">${u}</button>`).join("");
+  $("#p-units").innerHTML = sheet.units.map(u => `<button type="button" data-unit="${esc(u)}" class="${u===sheet.unit?"on":""}" aria-pressed="${u===sheet.unit}">${esc(u)}</button>`).join("");
 }
-const stepSize = () => sheetUnit === "kg" ? 0.5 : 1;
+function renderVariants(){
+  const p = byId[sheet.pid];
+  $("#p-vars").classList.remove("bad");
+  $("#p-vars").innerHTML = p.variants.options.map(o => `<button type="button" data-var="${esc(o)}" class="${o===sheet.variant?"on":""}" aria-pressed="${o===sheet.variant}">${esc(o)}</button>`).join("");
+}
+const stepSize = () => sheet.unit === "kg" ? 0.5 : 1;
 function saveProduct(){
+  const p = sheet.pid ? byId[sheet.pid] : null;
+  const err = m => { $("#p-err").textContent = m; };
+  const name = $("#p-cname").value.trim();
+  if(sheet.custom && !name){ err("Írja be, milyen terméket kér."); $("#p-cname").classList.add("bad"); $("#p-cname").focus(); return; }
+  if(p && p.variants && !sheet.variant){ err(`Válassza ki: ${p.variants.label.toLowerCase()}.`); $("#p-vars").classList.add("bad"); return; }
   const q = num($("#p-qty").value);
-  if(q <= 0){ $("#p-err").textContent = "Adjon meg 0-nál nagyobb mennyiséget."; $("#p-qty").classList.add("bad"); return; }
-  if(q > 9999){ $("#p-err").textContent = "Ekkora mennyiséghez hívjon minket: +36 70 7729 373"; return; }
-  const isNew = !state.cart[editing];
-  const tile = $("#p-tile"), key = catStyle(byId[editing].cat)[0];
-  state.cart[editing] = { qty:q, unit:sheetUnit };
-  state.last = editing;
+  if(q <= 0){ err("Adjon meg 0-nál nagyobb mennyiséget."); $("#p-qty").classList.add("bad"); return; }
+  if(q > 9999){ err("Ekkora mennyiséghez hívjon minket: +36 70 7729 373"); return; }
+  const note = $("#p-note").value.trim().slice(0, 120);
+  const line = sheet.custom
+    ? { custom:true, name:name.slice(0, 80), qty:q, unit:sheet.unit, note }
+    : { pid:sheet.pid, variant:sheet.variant || "", qty:q, unit:sheet.unit, note };
+  const newKey = sheet.custom ? (sheet.key || "x" + Date.now().toString(36)) : lineKey(sheet.pid, sheet.variant);
+  if(sheet.key && sheet.key !== newKey) delete state.cart[sheet.key];
+  const isNew = !sheet.key && !state.cart[newKey];
+  state.cart[newKey] = line;
+  state.last = newKey;
   saveCart();
-  if(isNew) flyToTruck(tile, key);
+  if(isNew) flyToTruck($("#p-tile"), p ? catStyle(p.cat)[0] : "bag");
   closeSheet();
   renderAll();
+  if(state.step === 2) renderDays();
 }
-function removeLine(id){
-  delete state.cart[id];
+function removeLine(key){
+  delete state.cart[key];
   saveCart(); renderAll();
   if(state.step === 2) renderDays();
-  if(state.step === 2 && !cartIds().length){ closeSheet(); goStep1(); }
+  if(state.step === 2 && !lineKeys().length){ closeSheet(); goStep1(); }
+}
+/* Kép nagyítása: gépen egérrel, mobilon koppintással */
+function lightbox(src, alt){
+  const lb = $("#lightbox");
+  lb.querySelector("img").src = src; lb.querySelector("p").textContent = alt || "";
+  lb.classList.add("on");
 }
 
 /* =========================================================
@@ -2176,7 +1079,9 @@ async function submit(){
   const go = $("#bar-go"); go.disabled = true; go.textContent = "Küldés…";
   const order = {
     company:v.company, email:v.email, deliveryDate:state.date, arriveFrom:`${state.hour}:${state.minute}`,
-    items: cartIds().map(id => ({ name:byId[id].name, category:byId[id].cat, qty:state.cart[id].qty, unit:state.cart[id].unit, cleaned:!!byId[id].cleaned })),
+    items: lineKeys().map(k => { const l = state.cart[k], p = lineProduct(l);
+      return { name:lineName(l), product:p ? p.name : l.name, variant:l.variant || "", category:p ? p.cat : "Egyéb",
+               qty:l.qty, unit:l.unit, note:l.note || "", cleaned:lineCleaned(l), custom:!!l.custom }; }),
     website: $("#website").value, turnstile: state.tsToken,
     createdAt: Date.now(), status:"new"
   };
@@ -2249,28 +1154,50 @@ function rain(keys){
 /* =========================================================
    15. ESEMÉNYEK
    ========================================================= */
-$("#list").addEventListener("click", e => { const b = e.target.closest(".item"); if(b && !b.disabled) openProduct(b.dataset.id); });
+$("#list").addEventListener("click", e => {
+  if(e.target.closest("[data-custom]")){ openCustom(); return; }
+  const th = e.target.closest(".thumb");
+  if(th && coarse()){ lightbox(th.dataset.zoom, th.dataset.alt); return; }
+  const b = e.target.closest(".item"); if(b && !b.disabled) openProduct(b.dataset.id);
+});
+$("#list").addEventListener("mouseover", e => {
+  if(coarse()) return;
+  const th = e.target.closest(".thumb"); const z = $("#zoom");
+  if(!th){ z.classList.remove("on"); return; }
+  const r = th.getBoundingClientRect();
+  z.querySelector("img").src = th.dataset.zoom;
+  const left = r.right + 12 + 260 < innerWidth ? r.right + 12 : r.left - 272;
+  z.style.left = Math.max(8, left) + "px";
+  z.style.top = Math.min(innerHeight - 270, Math.max(8, r.top + r.height/2 - 130)) + "px";
+  z.classList.add("on");
+});
+$("#list").addEventListener("mouseleave", () => $("#zoom").classList.remove("on"));
+addEventListener("scroll", () => $("#zoom").classList.remove("on"), {passive:true});
+$("#p-tile").addEventListener("click", e => { const t = e.currentTarget; if(t.dataset.zoom) lightbox(t.dataset.zoom, t.dataset.alt); });
+$("#lightbox").addEventListener("click", () => $("#lightbox").classList.remove("on"));
+$("#p-vars").addEventListener("click", e => { const b = e.target.closest("[data-var]"); if(!b) return; sheet.variant = b.dataset.var; renderVariants(); $("#p-err").textContent = ""; });
 document.addEventListener("click", e => {
-  const ed = e.target.closest("[data-edit]"); if(ed){ openProduct(ed.dataset.edit); return; }
+  const ed = e.target.closest("[data-edit]"); if(ed){ openLine(ed.dataset.edit); return; }
   const dl = e.target.closest("[data-del]"); if(dl){ removeLine(dl.dataset.del); return; }
   if(e.target.closest("[data-close]")) closeSheet();
 });
 $("#scrim").addEventListener("click", closeSheet);
-document.addEventListener("keydown", e => { if(e.key === "Escape") closeSheet(); });
+document.addEventListener("keydown", e => { if(e.key === "Escape"){ if($("#lightbox").classList.contains("on")) $("#lightbox").classList.remove("on"); else closeSheet(); } });
 $("#q").addEventListener("input", e => { state.q = e.target.value; renderList(); });
 $("#chips").addEventListener("click", e => {
   const b = e.target.closest("[data-cat]"); if(!b) return;
   const g = document.getElementById(catSlug(b.dataset.cat));
   if(g){ const y = g.getBoundingClientRect().top + scrollY - $("#tools").offsetHeight - 8; window.scrollTo({top:y, behavior: reduced() ? "auto" : "smooth"}); setActiveChip(b.dataset.cat); }
 });
-$("#p-units").addEventListener("click", e => { const b = e.target.closest("[data-unit]"); if(!b) return; sheetUnit = b.dataset.unit; renderUnits(); });
+$("#p-units").addEventListener("click", e => { const b = e.target.closest("[data-unit]"); if(!b) return; sheet.unit = b.dataset.unit; renderUnits(); });
 $("#p-quick").innerHTML = QUICK.map(q => `<button type="button" data-q="${q}">${q}</button>`).join("");
 $("#p-quick").addEventListener("click", e => { const b = e.target.closest("[data-q]"); if(!b) return; $("#p-qty").value = b.dataset.q; $("#p-err").textContent = ""; $("#p-qty").classList.remove("bad"); });
 $("#p-inc").addEventListener("click", () => { $("#p-qty").value = fmtQty(Math.round((num($("#p-qty").value) + stepSize())*100)/100); });
 $("#p-dec").addEventListener("click", () => { const v = Math.round((num($("#p-qty").value) - stepSize())*100)/100; $("#p-qty").value = v > 0 ? fmtQty(v) : ""; });
 $("#p-qty").addEventListener("keydown", e => { if(e.key === "Enter") saveProduct(); });
+$("#p-note").addEventListener("keydown", e => { if(e.key === "Enter") saveProduct(); });
 $("#p-save").addEventListener("click", saveProduct);
-$("#p-del").addEventListener("click", () => { const id = editing; closeSheet(); removeLine(id); });
+$("#p-del").addEventListener("click", () => { const k = sheet.key; closeSheet(); if(k) removeLine(k); });
 $("#truck-btn").addEventListener("click", () => showSheet($("#cartSheet")));
 $("#info").addEventListener("click", () => showSheet($("#cartSheet")));
 $("#sum-mobile").addEventListener("click", () => showSheet($("#cartSheet")));
@@ -2289,8 +1216,38 @@ $("#again").addEventListener("click", () => { showStep(1); resetBarTruck(); });
    16. INDULÁS
    ========================================================= */
 $("#truck-btn").innerHTML = `<div class="truck">${truckSVG()}<span class="badge">0</span></div>`;
-state.cart = store.get("nb_cart", {});
-for(const id of Object.keys(state.cart)) if(!byId[id] || !byId[id].orderable) delete state.cart[id];
+/* Elmentett kosár betöltése (a régi formátumot is átalakítja) */
+function loadCart(){
+  const raw = store.get("nb_cart", {}) || {};
+  state.cart = {};
+  for(const [k, v] of Object.entries(raw)){
+    if(!v || typeof v !== "object") continue;
+    if(!v.pid && !v.custom) state.cart[k] = { pid:k, variant:"", qty:v.qty, unit:v.unit, note:"" };
+    else state.cart[k] = v;
+  }
+  cleanCart();
+}
+/* Törli a már nem rendelhető tételeket, és javítja az időközben megszűnt egységeket */
+function cleanCart(){
+  for(const [k, l] of Object.entries(state.cart)){
+    if(l.custom) continue;
+    const p = byId[l.pid];
+    if(!p || !p.orderable || (p.variants && !p.variants.options.includes(l.variant))){ delete state.cart[k]; continue; }
+    if(!p.units.includes(l.unit)) l.unit = p.units[0];
+  }
+  saveCart();
+}
+async function loadCatalog(){
+  try{
+    const r = await fetch("catalog.json?t=" + Date.now(), { cache:"no-store" });
+    if(!r.ok) return;
+    const c = await r.json();
+    if(!c || !Array.isArray(c.products) || !c.products.length) return;
+    useCatalog(c);
+    cleanCart(); renderChips(); renderAll();
+  }catch(e){ /* nincs catalog.json: marad a beépített lista */ }
+}
+loadCart();
 const cust = store.get("nb_customer", null);
 if(cust){ $("#company").value = cust.company || ""; $("#email").value = cust.email || ""; }
 renderClock(); setInterval(() => { renderClock(); if(state.step === 2) renderDays(); }, 30000);
@@ -2298,6 +1255,7 @@ renderChips();
 renderAll();
 showStep(1);
 rumble(1100);
+loadCatalog();
 </script>
 </body>
 </html>

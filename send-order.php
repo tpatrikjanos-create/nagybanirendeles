@@ -112,10 +112,11 @@ foreach ($items as $it) {
     $name = trim((string)($it['name'] ?? ''));
     $unit = trim((string)($it['unit'] ?? ''));
     $qty  = (float)($it['qty'] ?? 0);
-    if ($name === '' || $qty <= 0 || $qty > 9999 || mb_strlen($name) > 120 || mb_strlen($unit) > 20) continue;
+    if ($name === '' || $qty <= 0 || $qty > 9999 || mb_strlen($name) > 160 || mb_strlen($unit) > 20) continue;
     $isCleaned = !empty($it['cleaned']);
     $hasCleaned = $hasCleaned || $isCleaned;
-    $clean[] = ['name' => $name, 'unit' => $unit, 'qty' => $qty, 'cleaned' => $isCleaned];
+    $note = preg_replace('/\s+/u', ' ', mb_substr(trim((string)($it['note'] ?? '')), 0, 120));
+    $clean[] = ['name' => $name, 'unit' => $unit, 'qty' => $qty, 'cleaned' => $isCleaned, 'note' => $note, 'custom' => !empty($it['custom'])];
 }
 if (!$clean) fail(422, 'Nincs érvényes tétel.', 'cart');
 
@@ -159,8 +160,9 @@ $dateHu = $req->format('Y. m. d.') . ', ' . $napok[(int)$req->format('w')];
 $textLines = []; $rows = '';
 foreach ($clean as $it) {
     $q = $fmtQty($it['qty']);
-    $textLines[] = "- {$it['name']}: $q {$it['unit']}";
-    $rows .= '<tr><td style="padding:9px 12px;border-bottom:1px solid #e3e9d6">' . $h($it['name']) . '</td>'
+    $textLines[] = "- {$it['name']}: $q {$it['unit']}" . ($it['note'] !== '' ? " (megjegyzés: {$it['note']})" : '');
+    $rows .= '<tr><td style="padding:9px 12px;border-bottom:1px solid #e3e9d6">' . $h($it['name'])
+           . ($it['note'] !== '' ? '<div style="font-size:13px;color:#5f6d55;font-style:italic;margin-top:2px">' . $h($it['note']) . '</div>' : '') . '</td>'
            . '<td style="padding:9px 12px;border-bottom:1px solid #e3e9d6;text-align:right;white-space:nowrap;font-weight:700;color:#4f8a27">'
            . $h("$q {$it['unit']}") . '</td></tr>';
 }
@@ -194,13 +196,15 @@ $honapok = ['jan.','febr.','márc.','ápr.','máj.','jún.','júl.','aug.','szep
 $dayShort = $napok[(int)$req->format('w')] . ', ' . $honapok[(int)$req->format('n') - 1] . ' ' . $req->format('j') . '.';
 $placedAt = $honapok[(int)date('n') - 1] . ' ' . date('j') . '. ' . date('H:i');
 $cleanedCount = count(array_filter($clean, fn($i) => $i['cleaned']));
+$customCount  = count(array_filter($clean, fn($i) => $i['custom']));
 
 $iRows = '';
 foreach ($clean as $it) {
     $q = $fmtQty($it['qty']);
-    $badge = $it['cleaned']
-        ? ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#e3f1f5;color:#2b6f85;font-size:12px;font-weight:700">tisztított</span>'
-        : '';
+    $pill = fn($t, $bg, $fg) => ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:' . $bg . ';color:' . $fg . ';font-size:12px;font-weight:700">' . $t . '</span>';
+    $badge = ($it['cleaned'] ? $pill('tisztított', '#e3f1f5', '#2b6f85') : '')
+           . ($it['custom'] ? $pill('nincs a listában', '#fdeedd', '#9a5a1c') : '')
+           . ($it['note'] !== '' ? '<div style="margin-top:4px;font-size:14px;color:#9a5a1c;font-weight:700">Megjegyzés: ' . $h($it['note']) . '</div>' : '');
     $iRows .= '<tr>'
         . '<td style="padding:12px 14px;border-bottom:1px solid #e3e9d6;font-size:17px">' . $h($it['name']) . $badge . '</td>'
         . '<td style="padding:12px 14px;border-bottom:1px solid #e3e9d6;text-align:right;white-space:nowrap;font-size:18px;font-weight:700;color:#16381b">' . $h("$q {$it['unit']}") . '</td>'
@@ -210,6 +214,8 @@ $cleanedNote = $cleanedCount
     ? '<div style="margin:0 0 16px;padding:12px 14px;border-radius:10px;background:#e3f1f5;color:#2b6f85;font-size:14px;font-weight:700">'
       . $cleanedCount . ' tisztított tétel van a rendelésben – előkészítendő.</div>'
     : '';
+if ($customCount) $cleanedNote .= '<div style="margin:0 0 16px;padding:12px 14px;border-radius:10px;background:#fdeedd;color:#9a5a1c;font-size:14px;font-weight:700">'
+      . $customCount . ' olyan tételt kért, ami nincs a listában – egyeztetni kell vele.</div>';
 
 $htmlInternal = '<!DOCTYPE html><html lang="hu"><body style="margin:0;background:#f5f8ef;font-family:Arial,Helvetica,sans-serif;color:#16381b">'
   . '<div style="max-width:600px;margin:0 auto;padding:20px">'
@@ -236,8 +242,11 @@ $htmlInternal = '<!DOCTYPE html><html lang="hu"><body style="margin:0;background
 $textInternal = "ÚJ RENDELÉS – $orderNo\n\n$company\nSzállítás: $dayShort\nÉrkezés: $time órától\n"
   . "Vevő e-mail: $email\nLeadva: $placedAt\n"
   . ($cleanedCount ? "\n$cleanedCount tisztított tétel – előkészítendő!\n" : '')
+  . ($customCount ? "$customCount tétel nincs a listában – egyeztetni kell!\n" : '')
   . "\nTételek:\n"
-  . implode("\n", array_map(fn($it) => '- ' . $it['name'] . ': ' . $fmtQty($it['qty']) . ' ' . $it['unit'] . ($it['cleaned'] ? ' (tisztított)' : ''), $clean))
+  . implode("\n", array_map(fn($it) => '- ' . $it['name'] . ': ' . $fmtQty($it['qty']) . ' ' . $it['unit']
+        . ($it['cleaned'] ? ' (tisztított)' : '') . ($it['custom'] ? ' (NINCS A LISTÁBAN)' : '')
+        . ($it['note'] !== '' ? "\n    megjegyzés: {$it['note']}" : ''), $clean))
   . "\n";
 
 function send_mail(string $to, string $subject, string $text, string $html, string $replyTo = FROM_EMAIL): bool {
