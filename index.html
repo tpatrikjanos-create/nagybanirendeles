@@ -389,8 +389,8 @@ label{display:block;font-size:14px;font-weight:800;margin:14px 0 6px}
 
 /* Nyitó animáció (naponta egyszer) */
 @keyframes in-rise{from{opacity:0;transform:translateY(12px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-.intro .hero h1 .w{display:inline-block;animation:in-rise .6s var(--ease) both;animation-delay:calc(.15s + var(--i) * .06s)}
-.intro .hero p,.intro .t1 .truck{animation:in-rise .6s var(--ease) both;animation-delay:.7s}
+.intro .slide.on h2,.intro .slide.on .kick{animation:in-rise .6s var(--ease) both;animation-delay:.1s}
+.intro .slide.on p,.intro .slide.on .cta,.intro .slide.on .art,.intro .peek{animation:in-rise .6s var(--ease) both;animation-delay:.7s}
 
 .toast{position:fixed;left:50%;bottom:calc(var(--bar-h) + 22px + env(safe-area-inset-bottom));z-index:100;transform:translate(-50%,12px);width:max-content;max-width:calc(100vw - 32px);background:rgba(255,255,255,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);color:var(--ink);border:1px solid var(--glass-b);box-shadow:0 12px 30px -12px rgba(0,0,0,.3);padding:12px 18px;border-radius:16px;font-size:15px;font-weight:700;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s,transform .25s var(--ease)}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -401,6 +401,88 @@ body.lock .toast{bottom:auto;top:calc(14px + env(safe-area-inset-top));transform
 body.lock .toast.show{transform:translate(-50%,0)}
 .step{animation:rise .35s var(--ease)}
 @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ===== Forgó hírsáv ===== */
+.news{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.news{grid-template-columns:minmax(0,2.1fr) minmax(0,1fr)}}
+.stage{position:relative;border-radius:26px;overflow:hidden;min-height:236px;touch-action:pan-y;user-select:none}
+@media (min-width:900px){.stage{min-height:290px}}
+.bars{position:absolute;left:18px;right:18px;top:14px;z-index:3;display:flex;gap:5px}
+.bars button{flex:1;height:14px;padding:5px 0;border:0;background:none;cursor:pointer}
+.bars i{display:block;height:4px;border-radius:4px;background:rgba(23,33,15,.14);overflow:hidden}
+.bars i::after{content:"";display:block;height:100%;width:0;background:var(--ink);border-radius:4px}
+.bars .done i::after{width:100%}
+.bars .on i::after{animation:fill var(--dur,6s) linear forwards}
+.stage.paused .bars .on i::after{animation-play-state:paused}
+@keyframes fill{to{width:100%}}
+.slide{position:absolute;inset:0;padding:40px 20px 20px;display:flex;flex-direction:column;justify-content:flex-end;background:var(--tint);opacity:0;transform:translateX(24px);transition:opacity .45s var(--ease),transform .45s var(--ease);pointer-events:none}
+.slide.on{opacity:1;transform:none;pointer-events:auto}
+.slide.out{transform:translateX(-24px)}
+.slide .kick{display:inline-flex;align-self:flex-start;align-items:center;gap:6px;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.75);color:var(--acc);margin-bottom:10px}
+.slide h2{font-weight:800;letter-spacing:-.03em;line-height:1.02;font-size:clamp(27px,6.6vw,44px);margin:0;max-width:13ch;color:var(--ink)}
+.slide p{margin:8px 0 0;font-size:14.5px;line-height:1.45;font-weight:500;color:var(--ink-2);max-width:min(40ch,62%)}
+.slide .cta{align-self:flex-start;margin-top:14px;height:44px;padding:0 8px 0 18px;border:0;border-radius:999px;background:var(--ink);color:#fff;font-weight:800;font-size:14.5px;display:inline-flex;align-items:center;gap:10px;text-decoration:none}
+.slide .cta span{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.18);display:grid;place-items:center}
+.slide .cta span svg{width:13px;height:13px}
+.slide .cta.soon{background:rgba(255,255,255,.8);color:var(--ink-2);padding:0 16px;cursor:default}
+.slide .art{position:absolute;right:14px;top:44px;width:min(34%,170px);aspect-ratio:1;display:grid;place-items:center}
+.slide .art .ic{filter:drop-shadow(0 14px 18px rgba(23,40,18,.18))}
+.slide .art.wide{width:min(46%,240px);aspect-ratio:2;top:auto;bottom:18px}
+.slide .art i{position:absolute;inset:8%;border-radius:50%;background:rgba(255,255,255,.55)}
+.slide .art.wide i{display:none}
+@media (max-width:520px){.slide p{max-width:none}.slide h2{max-width:11ch}.slide .art{width:88px;top:40px;right:12px}.slide .art.wide{width:140px;top:40px;bottom:auto}}
+@media (max-width:380px){.slide .art{width:72px}.slide .art.wide{width:112px}.slide h2{font-size:26px}}
+.peek{display:none}
+@media (min-width:900px){.peek{display:grid;gap:10px;grid-template-rows:1fr 1fr}}
+.pk{position:relative;overflow:hidden;border-radius:22px;padding:16px;text-align:left;border:1px solid var(--glass-b);background:var(--tint);display:flex;flex-direction:column;justify-content:flex-end;cursor:pointer;transition:transform .15s var(--ease)}
+.pk:active{transform:scale(.98)}
+.pk small{font-size:11.5px;font-weight:800;color:var(--acc)}
+.pk b{font-size:18px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin-top:4px;max-width:12ch}
+.pk .art{position:absolute;right:10px;top:10px;width:64px;height:64px}
+.pk .art.wide{width:110px;height:54px}
+.quickways{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.qw{display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:16px;border:1px solid var(--glass-b);font-weight:800;font-size:13.5px;color:var(--ink);text-decoration:none;position:relative}
+.qw svg{width:20px;height:20px;color:var(--green-d);flex:none}
+.qw em{position:absolute;top:-7px;right:6px;font-style:normal;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--ink-2)}
+@media (max-width:520px){.qw{flex-direction:column;gap:2px;height:60px;font-size:11.5px}}
+
+
+/* Telefonon is: egy nagy + két kis csempe */
+@media (max-width:899px){
+  .peek{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}
+  .pk{min-height:118px;padding:12px}
+  .pk b{font-size:15px;max-width:none;padding-right:4px}
+  .pk .art{width:44px;height:44px;right:8px;top:8px}
+  .pk .art.wide{width:76px;height:38px}
+  .pk small{max-width:calc(100% - 46px)}
+}
+/* a dobozt a leghosszabb hír magassága adja, így semmi nem lóg ki */
+.stage{display:grid;min-height:0}
+#slides{display:grid;grid-area:1/1}
+.slide{position:relative;inset:auto;grid-area:1/1;min-height:236px}
+@media (min-width:900px){.slide{min-height:300px}}
+@media (min-width:900px){.slide h2{max-width:min(17ch,60%);font-size:clamp(30px,3.3vw,42px)}}
+
+/* ===== Lebegő AI-gomb ===== */
+.fab{position:fixed;right:max(14px,calc(50vw - 380px + 4px));bottom:calc(var(--bar-h) + 22px + env(safe-area-inset-bottom));z-index:45;height:54px;padding:0 18px 0 8px;border-radius:999px;border:1px solid var(--glass-b);display:flex;align-items:center;gap:9px;font-weight:800;font-size:14.5px;color:var(--ink);background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(1.5);backdrop-filter:blur(20px) saturate(1.5);box-shadow:inset 0 1px 0 #fff,0 16px 30px -14px rgba(23,40,18,.45);transition:transform .15s var(--ease),opacity .2s}
+.fab:active{transform:scale(.96)}
+.fab .orb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:conic-gradient(from 210deg,#2f8a3c,#3b8ea5,#8a4fb0,#f0882a,#2f8a3c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+.fab .orb svg{width:20px;height:20px}
+.fab em{font-style:normal;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--mint);color:var(--green-d)}
+@media (min-width:800px){.fab{right:24px;bottom:24px}}
+@media (max-width:420px){.fab .tx{display:none}.fab{padding:0 7px;height:54px}.fab em{display:none}}
+body.lock .fab,body.s3 .fab{opacity:0;pointer-events:none}
+.ai-opts{display:grid;gap:10px;margin-top:16px}
+.ai-opt{display:flex;align-items:center;gap:14px;width:100%;padding:14px;border-radius:20px;border:1px solid var(--line);background:#fff;text-align:left}
+.ai-opt:active{transform:scale(.98)}
+.ai-opt i{flex:none;width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:var(--tint)}
+.ai-opt i svg{width:28px;height:28px}
+.ai-opt b{display:block;font-size:16.5px;font-weight:800;color:var(--ink)}
+.ai-opt span{display:block;font-size:13.5px;color:var(--ink-2);margin-top:2px;line-height:1.35}
+.ai-opt em{margin-left:auto;flex:none;font-style:normal;font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:#f0f2ee;color:var(--ink-2)}
+.ai-foot{margin:14px 2px 0;font-size:13px;color:var(--ink-2)}
+.ai-foot a{color:var(--green-d);font-weight:800;text-decoration:none}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 @media (max-width:699px){
@@ -415,7 +497,7 @@ body.lock .toast.show{transform:translate(-50%,0)}
 </head>
 <body>
 <div class="orbs" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-<div class="promo">Visszaigazolás minden rendelésről e-mailben<span class="long"> · Vasárnap nem szállítunk</span></div>
+<div class="promo">Minden rendelésről azonnali visszaigazolás e-mailben<span class="long"> · Hétfőtől szombatig szállítunk</span></div>
 
 <header class="head glass" id="head">
   <div class="head-in">
@@ -448,20 +530,11 @@ body.lock .toast.show{transform:translate(-50%,0)}
   <!-- 1. LÉPÉS -->
   <section class="step" id="step1">
     <div id="home" class="home">
-      <section class="hero">
-        <div class="tileP t1 pane">
-          <h1>Friss áru a nagybaniról, egyenesen a konyhájába.</h1>
-          <p>Zöldség, gyümölcs, savanyúság és konyhakész áru egy listában, árak nélkül, pár koppintással.</p>
-          <div class="truck" id="hero-truck"></div>
-        </div>
-        <div class="hero-side">
-          <button class="tileP t2 pane" type="button" id="go-cleaned"><span class="art" id="art-knife"></span><h2>Konyhakész áru</h2><p>Burgonya, hagyma, répa kockázva, karikázva, julienne-ben.</p></button>
-          <button class="tileP t3 pane" type="button" id="go-custom"><span class="art" id="art-bag"></span><h2>Nem találja?</h2><p>Írja be, és megnézzük, tudjuk-e hozni.</p></button>
-        </div>
+      <section class="news" aria-roledescription="hírsáv" aria-label="Újdonságok">
+        <div class="stage pane" id="stage"><div class="bars" id="bars"></div><div id="slides"></div></div>
+        <div class="peek" id="peek"></div>
       </section>
 
-      <div class="sec-h"><h2>Rendeljen úgy, ahogy kényelmes</h2></div>
-      <div class="ways" id="ways"></div>
 
       <div class="sec-h" id="cats-h"><h2>Kategóriák</h2><p id="cats-n"></p></div>
       <nav class="cats" id="cats" aria-label="Kategóriák"></nav>
@@ -544,7 +617,7 @@ body.lock .toast.show{transform:translate(-50%,0)}
   <section class="step" id="step3" hidden>
     <div class="finish">
       <div class="park" id="park"></div>
-      <h2>Rendelés rögzítve.</h2>
+      <h2>Megvan! Már készítjük a rakományt.</h2>
       <p id="ok-msg"></p>
       <div class="order-no" id="ok-no"></div>
       <div class="slip pane receipt-wrap">
@@ -612,6 +685,15 @@ body.lock .toast.show{transform:translate(-50%,0)}
     <button class="btn danger" type="button" id="p-del">Törlés</button>
     <button class="btn" type="button" id="p-save">Berakom a kocsiba</button>
   </div>
+</div>
+
+<!-- Lebegő AI-gomb és panel -->
+<button class="fab" id="fab" type="button" aria-haspopup="dialog"><span class="orb"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5l1.9 5.6 5.6 1.9-5.6 1.9L12 17.5l-1.9-5.6L4.5 10l5.6-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></span><span class="tx">Rendelés AI-val</span><em id="fab-soon">hamarosan</em></button>
+<div class="sheet" id="aiSheet" role="dialog" aria-modal="true" aria-labelledby="ai-h">
+  <div class="grab"></div>
+  <div class="p-head"><div><h3 id="ai-h">Rendelés AI-val</h3><small>Mondja, fotózza vagy írja le, mi összerakjuk a kosarat.</small></div><button class="x" type="button" data-close aria-label="Bezárás">×</button></div>
+  <div class="ai-opts" id="ai-opts"></div>
+  <p class="ai-foot">E-mailben is rendelhet: <a href="mailto:rendeles@nagybanigastro.hu?subject=Rendel%C3%A9s">rendeles@nagybanigastro.hu</a></p>
 </div>
 
 <!-- Szállítólevél panel -->
@@ -828,9 +910,9 @@ function renderClock(){
   let t;
   if(left > 0 && !tomorrowSunday){
     const h = Math.floor(left/60), m = left % 60;
-    t = `Tisztított áru holnapra: még <b>${h ? h+" ó " : ""}${m} p</b>`;
+    t = `Konyhakész áru holnapra: még <b>${h ? h+" ó " : ""}${m} p</b>`;
   } else {
-    t = `Tisztított áru: legkorábban <b>${fmtShort(addDaysISOSkipSun(now.iso, left > 0 ? 1 : 2))}</b>`;
+    t = `Konyhakész áru: legkorábban <b>${fmtShort(addDaysISOSkipSun(now.iso, left > 0 ? 1 : 2))}</b>`;
   }
   $("#clock-text").innerHTML = t;
 }
@@ -1140,6 +1222,7 @@ function lightbox(src, alt){
    11. LÉPÉSEK
    ========================================================= */
 function showStep(n){
+  document.body.classList.toggle("s3", n === 3);
   state.step = n;
   ["step1","step2","step3"].forEach((id,i) => $("#"+id).hidden = (i+1) !== n);
   $$("#steps li").forEach(li => { const s = +li.dataset.s; li.classList.toggle("on", s===n); li.classList.toggle("done", s<n); });
@@ -1398,19 +1481,6 @@ const WAYS = [
   ["email","Küldje e-mailben",ORDER_EMAIL,'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>'],
   ["chat","Írjon a csevegőbe","Ha nem szeretne beszélni: gépelje be, és az AI összerakja a rendelést.",'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9.5h8M8 12.5h5" stroke-linecap="round"/></svg>']
 ];
-function renderWays(){
-  $("#ways").innerHTML = WAYS.map(([k, t, d, ic]) => {
-    const live = AI_LIVE[k], badge = live ? (k === "email" ? "Működik" : "Új") : "Hamarosan";
-    const inner = `<i>${ic}</i><b>${t}</b><span>${esc(d)}</span><em>${badge}</em>`;
-    return k === "email"
-      ? `<a class="way pane ${live?"live":""}" href="mailto:${ORDER_EMAIL}?subject=${encodeURIComponent("Rendelés")}">${inner}</a>`
-      : `<button class="way pane ${live?"live":""}" type="button" data-way="${k}">${inner}</button>`;
-  }).join("");
-}
-$("#ways").addEventListener("click", e => {
-  const b = e.target.closest("[data-way]"); if(!b) return;
-  if(!AI_LIVE[b.dataset.way]) toast(`Hamarosan elérhető. Addig írjon a ${ORDER_EMAIL} címre, vagy hívjon minket.`);
-});
 function scrollToCat(cat){
   if(state.q){ state.q = ""; $("#q").value = ""; renderList(); }
   const g = document.getElementById(catSlug(cat)); if(!g) return;
@@ -1418,8 +1488,6 @@ function scrollToCat(cat){
   window.scrollTo({top:y, behavior: reduced() ? "auto" : "smooth"}); setActiveChip(cat);
 }
 $("#cats").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if(b) scrollToCat(b.dataset.cat); });
-$("#go-cleaned").addEventListener("click", () => { const c = PRODUCTS.find(p => p.cleaned); if(c) scrollToCat(c.cat); });
-$("#go-custom").addEventListener("click", () => openCustom());
 function focusSearch(){
   if(state.step !== 1) showStep(1);
   window.scrollTo({top:0, behavior: reduced() ? "auto" : "smooth"});
@@ -1448,6 +1516,102 @@ document.addEventListener("keydown", e => {
   }
 });
 addEventListener("scroll", () => { if(scrollY < 40 && state.step === 1 && document.activeElement !== $("#q")) setTab("home"); }, {passive:true});
+
+
+/* =========================================================
+   14/d FORGÓ HÍRSÁV
+   ========================================================= */
+const ARR = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h9M8.5 4l4 4-4 4"/></svg>';
+const NEWS = [
+  { kick:"Nagybani Gastro", t:"A nagybani legjava, egyenesen a konyhájába.", d:"Több mint 140 termék egy helyen. Pár koppintás, és már rakodunk.", cta:"Rendelés indítása", act:"start", art:"truck", tint:"linear-gradient(135deg,#f4faf1,#dcefd4)", acc:"#256f30" },
+  { kick:"Konyhakész áru", t:"Ön főz, mi pucolunk.", d:"Burgonya, hagyma, répa, káposzta tisztítva, kockázva, karikázva vagy julienne-ben. 13:00-ig rendelje, holnap már a konyhában van.", cta:"Konyhakész áru", act:"cleaned", art:"knife", tint:"linear-gradient(135deg,#f3f9fb,#d9edf3)", acc:"#2b6f85" },
+  { kick:"Újdonság · AI", t:"Mondja be, mi leírjuk.", d:"Diktálja le a rendelést: az AI felismeri a termékeket, és a végén visszamondja, hogy minden stimmel-e.", act:"voice", art:"mic", tint:"linear-gradient(135deg,#faf7fd,#ebe1f5)", acc:"#6b3f8f" },
+  { kick:"Újdonság · AI", t:"Egy fotó, és kész a rendelés.", d:"Fotózza le a kézzel írt listát vagy a kitöltött táblázatot: mi kiolvassuk, Ön jóváhagyja.", act:"photo", art:"camera", tint:"linear-gradient(135deg,#fffaf3,#fde5cc)", acc:"#9a5a1c" },
+  { kick:"E-mailben is", t:"Írja meg, mi rögzítjük.", d:`Küldje a rendelést a ${ORDER_EMAIL} címre, ugyanúgy visszaigazoljuk.`, cta:"Levél írása", act:"email", art:"mail", tint:"linear-gradient(135deg,#fffdf2,#fbefc0)", acc:"#7a5a00" },
+  { kick:"Egyedi kérés", t:"Nincs a listán? Kérje!", d:"Írja be, mit keres, és ha a nagybanin megtaláljuk, hozzuk.", cta:"Egyedi kérés", act:"custom", art:"bag", tint:"linear-gradient(135deg,#fbf8f4,#efe4d6)", acc:"#8f5f2c" }
+];
+const NEWS_ICONS = {
+  mic:'<svg class="ic" viewBox="0 0 32 32"><rect x="11" y="3" width="10" height="17" rx="5" fill="#8a4fb0"/><rect x="13" y="6" width="3" height="8" rx="1.5" fill="#c9a6e0"/><path d="M7 15a9 9 0 0 0 18 0" stroke="#6b3f8f" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M16 24v5M11 29h10" stroke="#6b3f8f" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  camera:'<svg class="ic" viewBox="0 0 32 32"><path d="M4 10.5a2.5 2.5 0 0 1 2.5-2.5h4l2-3h7l2 3h4a2.5 2.5 0 0 1 2.5 2.5V24a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 4 24z" fill="#f0882a"/><circle cx="16" cy="17" r="6" fill="#fff"/><circle cx="16" cy="17" r="3.6" fill="#3b8ea5"/><circle cx="24.5" cy="11.5" r="1.3" fill="#fde5cc"/></svg>',
+  mail:'<svg class="ic" viewBox="0 0 32 32"><rect x="3" y="7" width="26" height="19" rx="3.5" fill="#f5c22c"/><path d="m4.5 9 11.5 9 11.5-9" stroke="#fff" stroke-width="2.4" fill="none" stroke-linejoin="round"/></svg>'
+};
+const newsArt = (k, small) => k === "truck"
+  ? `<span class="art wide"><span class="truck">${truckSVG()}</span></span>`
+  : `<span class="art">${small ? "" : "<i></i>"}${NEWS_ICONS[k] || icon(k)}</span>`;
+let newsI = 0, newsT = null, newsPaused = false;
+const NEWS_MS = 6000;
+function newsLive(n){ return !["voice","photo","chat"].includes(n.act) || AI_LIVE[n.act]; }
+function initNews(){
+  $("#slides").innerHTML = NEWS.map((n, i) => `<article class="slide" style="--tint:${n.tint};--acc:${n.acc}" aria-hidden="true" aria-roledescription="hír" aria-label="${i+1} / ${NEWS.length}">
+    ${newsArt(n.art)}<span class="kick">${esc(n.kick)}</span><h2>${esc(n.t)}</h2><p>${esc(n.d)}</p>
+    ${newsLive(n) ? `<button class="cta" type="button" data-act="${n.act}" tabindex="-1">${esc(n.cta || "Kipróbálom")}<span>${ARR}</span></button>` : `<span class="cta soon">Hamarosan</span>`}</article>`).join("");
+  $("#bars").innerHTML = NEWS.map((n, i) => `<button type="button" aria-label="${i+1}. hír: ${esc(n.t)}" data-i="${i}"><i></i></button>`).join("");
+  $("#stage").style.setProperty("--dur", NEWS_MS + "ms");
+  renderAI(); showNews(0);
+}
+function showNews(i){
+  const n = NEWS.length; const prev = newsI; newsI = (i + n) % n;
+  $$("#slides .slide").forEach((s, j) => {
+    s.classList.toggle("on", j === newsI); s.classList.toggle("out", j === prev && j !== newsI);
+    s.setAttribute("aria-hidden", j !== newsI); s.querySelector(".cta[data-act]")?.setAttribute("tabindex", j === newsI ? "0" : "-1");
+  });
+  $$("#bars button").forEach((b, j) => {
+    b.classList.remove("on"); void b.offsetWidth;
+    b.classList.toggle("done", j < newsI); b.classList.toggle("on", j === newsI);
+  });
+  /* gépen a következő két hír előnézete */
+  $("#peek").innerHTML = [1, 2].map(k => { const m = NEWS[(newsI + k) % n], idx = (newsI + k) % n;
+    return `<button class="pk" type="button" data-i="${idx}" style="--tint:${m.tint};--acc:${m.acc}">${newsArt(m.art, true)}<small>${esc(m.kick)}</small><b>${esc(m.t)}</b></button>`; }).join("");
+  clearTimeout(newsT);
+  if(!reduced() && !newsPaused) newsT = setTimeout(() => showNews(newsI + 1), NEWS_MS);
+}
+function pauseNews(on){
+  newsPaused = on; $("#stage").classList.toggle("paused", on);
+  if(on){ clearTimeout(newsT); }
+  else if(!reduced()){
+    /* a csík onnan folytatja, ahol megállt */
+    const bar = $("#bars .on i"), w = bar ? bar.firstElementChild : null;
+    const done = bar ? (parseFloat(getComputedStyle(bar, "::after").width) / bar.offsetWidth || 0) : 0;
+    clearTimeout(newsT); newsT = setTimeout(() => showNews(newsI + 1), Math.max(600, NEWS_MS * (1 - done)));
+  }
+}
+function newsAct(a){
+  if(a === "start") scrollToCat(PRODUCTS[0].cat);
+  else if(a === "cleaned"){ const c = PRODUCTS.find(p => p.cleaned); if(c) scrollToCat(c.cat); }
+  else if(a === "custom") openCustom();
+  else if(a === "email") location.href = `mailto:${ORDER_EMAIL}?subject=${encodeURIComponent("Rendelés")}`;
+  else if(!AI_LIVE[a]) toast(`Hamarosan elérhető. Addig írjon a ${ORDER_EMAIL} címre, vagy hívjon minket.`);
+}
+const WAYS_IC = {
+  voice:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+  photo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 8h3l1.6-2.5h6.8L17 8h3v11H4z"/><circle cx="12" cy="13.2" r="3.4"/></svg>',
+  email:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>',
+  chat:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></svg>'
+};
+$("#bars").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b) showNews(+b.dataset.i); });
+$("#peek").addEventListener("click", e => { const b = e.target.closest("[data-i]"); if(b) showNews(+b.dataset.i); });
+document.addEventListener("click", e => { const b = e.target.closest("#slides [data-act], #ai-opts [data-act]"); if(b) newsAct(b.dataset.act); });
+const AI_OPTS = [
+  ["voice","Mondja be","Diktálja le a rendelést, az AI a végén visszamondja és megerősítést kér.",NEWS_ICONS.mic,"#efe6f7"],
+  ["photo","Fotózza le","Kézzel írt lista vagy kitöltött táblázat, fotóról vagy a galériából.",NEWS_ICONS.camera,"#fdeedd"],
+  ["chat","Írjon","Ha nem szeretne beszélni: gépelje be, mint egy üzenetet.",'<svg class="ic" viewBox="0 0 32 32"><path d="M5 7.5A3.5 3.5 0 0 1 8.5 4h15A3.5 3.5 0 0 1 27 7.5v11a3.5 3.5 0 0 1-3.5 3.5H13l-6 5v-5.2A3.5 3.5 0 0 1 5 18.5z" fill="#2f8a3c"/><circle cx="11" cy="13" r="1.8" fill="#fff"/><circle cx="16" cy="13" r="1.8" fill="#fff"/><circle cx="21" cy="13" r="1.8" fill="#fff"/></svg>',"#e3f1e0"]
+];
+function renderAI(){
+  $("#ai-opts").innerHTML = AI_OPTS.map(([k,t,d,ic,tint]) => `<button class="ai-opt" type="button" data-act="${k}" style="--tint:${tint}"><i>${ic}</i><span><b>${t}</b><span>${esc(d)}</span></span>${AI_LIVE[k] ? "" : "<em>Hamarosan</em>"}</button>`).join("");
+  $("#fab-soon").hidden = AI_OPTS.some(o => AI_LIVE[o[0]]);
+}
+$("#fab").addEventListener("click", () => showSheet($("#aiSheet")));
+/* megáll, ha hozzáér vagy fölé viszi az egeret; lapozás húzással */
+let sx = null, moved = false;
+$("#stage").addEventListener("pointerenter", e => { if(e.pointerType === "mouse") pauseNews(true); });
+$("#stage").addEventListener("pointerleave", e => { if(e.pointerType === "mouse") pauseNews(false); });
+$("#stage").addEventListener("pointerdown", e => { sx = e.clientX; moved = false; if(e.pointerType !== "mouse") pauseNews(true); });
+$("#stage").addEventListener("pointerup", e => {
+  if(sx !== null){ const dx = e.clientX - sx; if(Math.abs(dx) > 40){ moved = true; showNews(newsI + (dx < 0 ? 1 : -1)); } }
+  sx = null; if(e.pointerType !== "mouse"){ newsPaused = false; $("#stage").classList.remove("paused"); if(!moved) pauseNews(false); }
+});
+$("#stage").addEventListener("pointercancel", () => { sx = null; pauseNews(false); });
+document.addEventListener("visibilitychange", () => { if(document.hidden) clearTimeout(newsT); else if(!newsPaused) showNews(newsI); });
 
 /* =========================================================
    15. ESEMÉNYEK
@@ -1511,17 +1675,13 @@ $("#again").addEventListener("click", () => { showStep(1); resetBarTruck(); });
    16. INDULÁS
    ========================================================= */
 $("#truck-btn").innerHTML = `<div class="truck">${truckSVG()}<span class="badge">0</span></div>`;
-$("#hero-truck").innerHTML = truckSVG();
-$("#art-knife").innerHTML = icon("knife"); $("#art-bag").innerHTML = icon("bag");
-renderWays();
+initNews();
 if(innerWidth < 620) $("#q").placeholder = "Keresés";
 /* Nyitó animáció: naponta csak az első megnyitáskor */
 (function intro(){
   const today = bpNow().iso;
   if(store.get("nb_intro", "") === today || reduced()) return;
   store.set("nb_intro", today);
-  const h1 = $(".hero h1");
-  h1.innerHTML = h1.textContent.trim().split(/\s+/).map((w, i) => `<span class="w" style="--i:${i}">${esc(w)}</span>`).join(" ");
   document.body.classList.add("intro");
   setTimeout(() => document.body.classList.remove("intro"), 2400);
 })();
