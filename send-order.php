@@ -106,6 +106,10 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL) || preg_match('/[\r\n]/', $email)
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date))               fail(422, 'Hibás dátum.', 'date');
 if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time))                              fail(422, 'Hibás időpont.', 'time');
 if (!is_array($items) || !$items || count($items) > MAX_ITEMS)                      fail(422, 'Hibás tétellista.', 'cart');
+$PAY = ['kártya' => 'Kártya', 'készpénz' => 'Készpénz', 'átutalás' => 'Átutalás'];
+$payment = (string)($data['payment'] ?? '');
+if (!isset($PAY[$payment])) $payment = '';
+$source = in_array($data['source'] ?? '', ['web', 'email', 'photo', 'chat', 'voice', 'admin'], true) ? $data['source'] : 'web';
 
 $clean = []; $hasCleaned = false;
 foreach ($items as $it) {
@@ -115,8 +119,12 @@ foreach ($items as $it) {
     if ($name === '' || $qty <= 0 || $qty > 9999 || mb_strlen($name) > 160 || mb_strlen($unit) > 20) continue;
     $isCleaned = !empty($it['cleaned']);
     $hasCleaned = $hasCleaned || $isCleaned;
-    $note = preg_replace('/\s+/u', ' ', mb_substr(trim((string)($it['note'] ?? '')), 0, 120));
-    $clean[] = ['name' => $name, 'unit' => $unit, 'qty' => $qty, 'cleaned' => $isCleaned, 'note' => $note, 'custom' => !empty($it['custom'])];
+    $one = fn($k, $n) => preg_replace('/\s+/u', ' ', mb_substr(trim((string)($it[$k] ?? '')), 0, $n));
+    $clean[] = [
+        'name' => $name, 'product' => $one('product', 120) ?: $name, 'variant' => $one('variant', 40),
+        'category' => $one('category', 60) ?: 'Egyéb', 'unit' => $unit, 'qty' => $qty,
+        'cleaned' => $isCleaned, 'note' => $one('note', 120), 'custom' => !empty($it['custom']),
+    ];
 }
 if (!$clean) fail(422, 'Nincs érvényes tétel.', 'cart');
 
@@ -145,123 +153,215 @@ if ($cf && flock($cf, LOCK_EX)) {
     $orderNo = 'NB-' . str_pad((string)$n, 4, '0', STR_PAD_LEFT);
 }
 
+
 // ---- Napló (biztonsági másolat a Firebase mellé) ----
 @file_put_contents(DATA_DIR . '/orders.jsonl', json_encode([
     'orderNo' => $orderNo, 'at' => date('c'), 'company' => $company, 'email' => $email,
-    'deliveryDate' => $date, 'arriveFrom' => $time, 'items' => $clean, 'ip' => hash('sha256', $ip),
+    'deliveryDate' => $date, 'arriveFrom' => $time, 'payment' => $payment, 'source' => $source,
+    'items' => $clean, 'ip' => hash('sha256', $ip),
 ], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND | LOCK_EX);
 
-// ---- E-mail tartalom ----
+// =====================================================================
+//  E-MAILEK – az oldal mattüveg dizájnjához igazítva.
+//  A levelezők nem ismerik az elmosást, ezért halvány zöldes háttér
+//  + fehér, lekerekített kártyák adják az üveg hatását.
+//  Logó és teherautó beágyazott képként (cid), így a Gmail sem tiltja le.
+// =====================================================================
 $h = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 $fmtQty = fn($n) => rtrim(rtrim(number_format((float)$n, 2, ',', ''), '0'), ',');
 $napok = ['vasárnap','hétfő','kedd','szerda','csütörtök','péntek','szombat'];
-$dateHu = $req->format('Y. m. d.') . ', ' . $napok[(int)$req->format('w')];
+$honapok = ['január','február','március','április','május','június','július','augusztus','szeptember','október','november','december'];
+$honapR = ['jan.','febr.','márc.','ápr.','máj.','jún.','júl.','aug.','szept.','okt.','nov.','dec.'];
+$wd = $napok[(int)$req->format('w')];
+$dateLong  = ucfirst($wd) . ', ' . $honapok[(int)$req->format('n') - 1] . ' ' . $req->format('j') . '.';
+$dateShort = $wd . ', ' . $honapR[(int)$req->format('n') - 1] . ' ' . $req->format('j') . '.';
+$placedAt  = $honapR[(int)date('n') - 1] . ' ' . date('j') . '. ' . date('H:i');
+$payLabel  = $payment !== '' ? $PAY[$payment] : '';
+$SOURCE = ['web' => 'Webes rendelés', 'email' => 'E-mailes rendelés', 'photo' => 'Fotóról kiolvasott rendelés',
+           'chat' => 'AI-csevegős rendelés', 'voice' => 'Szóban leadott rendelés', 'admin' => 'Admin rögzítette'];
 
-$textLines = []; $rows = '';
-foreach ($clean as $it) {
-    $q = $fmtQty($it['qty']);
-    $textLines[] = "- {$it['name']}: $q {$it['unit']}" . ($it['note'] !== '' ? " (megjegyzés: {$it['note']})" : '');
-    $rows .= '<tr><td style="padding:9px 12px;border-bottom:1px solid #e3e9d6">' . $h($it['name'])
-           . ($it['note'] !== '' ? '<div style="font-size:13px;color:#5f6d55;font-style:italic;margin-top:2px">' . $h($it['note']) . '</div>' : '') . '</td>'
-           . '<td style="padding:9px 12px;border-bottom:1px solid #e3e9d6;text-align:right;white-space:nowrap;font-weight:700;color:#4f8a27">'
-           . $h("$q {$it['unit']}") . '</td></tr>';
-}
+$CAT_COLOR = [
+    'Zöldségek' => '#f0882a', 'Paprika, paradicsom, padlizsán' => '#e0442f', 'Burgonya, hagyma' => '#c98f4e',
+    'Káposzta, saláta' => '#6fa838', 'Uborka, cukkini, tök' => '#3f7d2a', 'Gomba' => '#9a7b63',
+    'Fűszernövények' => '#3b8a4a', 'Gyümölcs' => '#e0442f', 'Egzotikus gyümölcsök' => '#e8a910',
+    'Száraz áru' => '#a8683a', 'Tojások' => '#d9a066', 'Csíra' => '#6fa838', 'Savanyúságok' => '#8a4fb0',
+    'Konyhakész, tisztított termékek' => '#3b8ea5', 'Egyéb' => '#56614f',
+];
+// Kategóriák a vevő sorrendjében
+$groups = [];
+foreach ($clean as $it) $groups[$it['category']][] = $it;
 
-$text = "Kedves Partnerünk!\n\nA megrendelését rögzítettük! Köszönjük!\n\n"
-      . "Rendelésszám: $orderNo\nCég: $company\nSzállítás napja: $dateHu\nÉrkezés az áruval: $time órától\n\n"
-      . "Rendelt tételek:\n" . implode("\n", $textLines)
-      . "\n\nÜdvözlettel,\nNagybani Gastro Zrt.\n";
-
-$html = '<!DOCTYPE html><html lang="hu"><body style="margin:0;background:#f5f8ef;font-family:Arial,Helvetica,sans-serif;color:#16381b">'
-  . '<div style="max-width:560px;margin:0 auto;padding:24px">'
-  . '<div style="background:#16381b;color:#fff;border-radius:16px 16px 0 0;padding:22px 24px">'
-  . '<div style="font-size:22px;font-weight:700">Nagybani Gastro</div>'
-  . '<div style="font-size:12px;margin-top:4px;color:#b9d79a">Frissesség • Minőség • Megbízhatóság</div></div>'
-  . '<div style="height:6px;background:#6fa838;background:linear-gradient(90deg,#6fa838,#f5c22c,#f0882a,#e0442f)"></div>'
-  . '<div style="background:#fff;padding:24px;border-radius:0 0 16px 16px">'
-  . '<p style="margin:0 0 10px;font-size:16px">Kedves Partnerünk!</p>'
-  . '<p style="margin:0 0 18px;font-size:16px"><b>A megrendelését rögzítettük! Köszönjük!</b></p>'
-  . '<table style="width:100%;font-size:14px;margin-bottom:18px">'
-  . '<tr><td style="padding:4px 0;color:#5f6d55">Rendelésszám</td><td style="text-align:right;font-weight:700">' . $h($orderNo) . '</td></tr>'
-  . '<tr><td style="padding:4px 0;color:#5f6d55">Cég</td><td style="text-align:right;font-weight:700">' . $h($company) . '</td></tr>'
-  . '<tr><td style="padding:4px 0;color:#5f6d55">Szállítás napja</td><td style="text-align:right;font-weight:700">' . $h($dateHu) . '</td></tr>'
-  . '<tr><td style="padding:4px 0;color:#5f6d55">Érkezés az áruval</td><td style="text-align:right;font-weight:700">' . $h($time) . ' órától</td></tr></table>'
-  . '<p style="margin:0 0 6px;font-weight:700">Rendelt tételek</p>'
-  . '<table style="width:100%;border-collapse:collapse;font-size:14px">' . $rows . '</table>'
-  . '<p style="margin:24px 0 0;font-size:15px">Üdvözlettel,<br><b>Nagybani Gastro Zrt.</b></p>'
-  . '</div></div></body></html>';
-
-// ---- Belső értesítő (info@) ----
-$honapok = ['jan.','febr.','márc.','ápr.','máj.','jún.','júl.','aug.','szept.','okt.','nov.','dec.'];
-$dayShort = $napok[(int)$req->format('w')] . ', ' . $honapok[(int)$req->format('n') - 1] . ' ' . $req->format('j') . '.';
-$placedAt = $honapok[(int)date('n') - 1] . ' ' . date('j') . '. ' . date('H:i');
 $cleanedCount = count(array_filter($clean, fn($i) => $i['cleaned']));
 $customCount  = count(array_filter($clean, fn($i) => $i['custom']));
+$noteCount    = count(array_filter($clean, fn($i) => $i['note'] !== ''));
 
-$iRows = '';
-foreach ($clean as $it) {
-    $q = $fmtQty($it['qty']);
-    $pill = fn($t, $bg, $fg) => ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:' . $bg . ';color:' . $fg . ';font-size:12px;font-weight:700">' . $t . '</span>';
-    $badge = ($it['cleaned'] ? $pill('tisztított', '#e3f1f5', '#2b6f85') : '')
-           . ($it['custom'] ? $pill('nincs a listában', '#fdeedd', '#9a5a1c') : '')
-           . ($it['note'] !== '' ? '<div style="margin-top:4px;font-size:14px;color:#9a5a1c;font-weight:700">Megjegyzés: ' . $h($it['note']) . '</div>' : '');
-    $iRows .= '<tr>'
-        . '<td style="padding:12px 14px;border-bottom:1px solid #e3e9d6;font-size:17px">' . $h($it['name']) . $badge . '</td>'
-        . '<td style="padding:12px 14px;border-bottom:1px solid #e3e9d6;text-align:right;white-space:nowrap;font-size:18px;font-weight:700;color:#16381b">' . $h("$q {$it['unit']}") . '</td>'
-        . '</tr>';
+$LOGO  = is_file(__DIR__ . '/logo-mail.png')  ? __DIR__ . '/logo-mail.png'  : '';
+$TRUCK = is_file(__DIR__ . '/truck-mail.png') ? __DIR__ . '/truck-mail.png' : '';
+
+$INK = '#17210f'; $MUTED = '#56614f'; $GREEN = '#2f8a3c'; $GREEN_D = '#256f30'; $MINT = '#e8f2e4'; $LINE = '#e6ebe2';
+$FONT = "font-family:'Manrope','Segoe UI',Helvetica,Arial,sans-serif";
+$card = fn($inner, $pad = '22px 24px', $extra = '') =>
+    '<tr><td style="padding:0 0 12px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;background:#ffffff;border:1px solid #ffffff;border-radius:22px;' . $extra . '">'
+  . '<tr><td style="padding:' . $pad . '">' . $inner . '</td></tr></table></td></tr>';
+$pill = fn($t, $bg, $fg) => '<span style="display:inline-block;padding:3px 9px;border-radius:999px;background:' . $bg . ';color:' . $fg . ';font-size:11.5px;font-weight:800;line-height:1.4;white-space:nowrap">' . $t . '</span>';
+
+$headerCard = function (string $badge) use ($h, $LOGO, $INK, $MUTED, $GREEN, $card) {
+    $logo = $LOGO ? '<img src="cid:logo@nagybani" width="56" height="56" alt="Nagybani Gastro" style="display:block;border:0;border-radius:50%">' : '';
+    return $card(
+        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>'
+      . ($logo ? '<td width="64" style="vertical-align:middle">' . $logo . '</td>' : '')
+      . '<td style="vertical-align:middle"><div style="font-size:19px;font-weight:800;letter-spacing:-.3px;color:' . $INK . '">Nagybani Gastro</div>'
+      . '<div style="font-size:12px;color:' . $MUTED . ';margin-top:2px">Frissesség · Minőség · Megbízhatóság</div></td>'
+      . '<td align="right" style="vertical-align:middle">' . $badge . '</td></tr></table>',
+        '16px 20px', 'border-top:4px solid ' . $GREEN . ';');
+};
+$summaryCell = fn($label, $value, $bg = '#f4f7f2', $fg = '#17210f') =>
+    '<td width="50%" style="padding:5px;vertical-align:top"><div style="background:' . $bg . ';border-radius:16px;padding:12px 14px">'
+  . '<div style="font-size:12px;font-weight:700;color:' . ($fg === '#17210f' ? '#56614f' : $fg) . ';opacity:.85">' . $label . '</div>'
+  . '<div style="font-size:16.5px;font-weight:800;color:' . $fg . ';margin-top:3px">' . $value . '</div></div></td>';
+
+// ---------- Tételsorok kategóriánként ----------
+$itemRows = function (bool $internal) use ($groups, $CAT_COLOR, $h, $fmtQty, $pill, $INK, $MUTED, $GREEN_D, $MINT, $LINE) {
+    $out = '';
+    foreach ($groups as $cat => $list) {
+        $col = $CAT_COLOR[$cat] ?? '#56614f';
+        $out .= '<tr><td colspan="' . ($internal ? 3 : 2) . '" style="padding:16px 0 6px">'
+              . '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' . $col . ';margin-right:8px;vertical-align:middle"></span>'
+              . '<span style="font-size:13px;font-weight:800;color:' . $MUTED . ';vertical-align:middle">' . $h($cat) . ' · ' . count($list) . '</span></td></tr>';
+        foreach ($list as $it) {
+            $q = $fmtQty($it['qty']) . ' ' . $it['unit'];
+            $title = $it['custom'] ? $it['name'] : $it['product'];
+            $sub = [];
+            if ($it['variant'] !== '') $sub[] = $h($it['variant']);
+            $tags = ($it['cleaned'] ? ' ' . $pill('tisztított', '#e3f1f5', '#2b6f85') : '')
+                  . ($it['custom'] ? ' ' . $pill($internal ? 'nincs a listában' : 'egyeztetjük', '#fdeedd', '#9a5a1c') : '');
+            $note = $it['note'] !== ''
+                ? '<div style="margin-top:4px;font-size:13px;' . ($internal ? 'font-weight:800;color:#9a5a1c' : 'font-style:italic;color:' . $MUTED) . '">' . ($internal ? 'Megjegyzés: ' : '„') . $h($it['note']) . ($internal ? '' : '”') . '</div>'
+                : '';
+            $out .= '<tr>'
+                . ($internal ? '<td width="30" style="padding:11px 0;border-top:1px solid ' . $LINE . ';vertical-align:top"><div style="width:18px;height:18px;border:2px solid #b9c4b2;border-radius:6px"></div></td>' : '')
+                . '<td style="padding:11px 0;border-top:1px solid ' . $LINE . ';vertical-align:top">'
+                . '<div style="font-size:' . ($internal ? '16.5' : '15.5') . 'px;font-weight:700;color:' . $INK . '">' . $h($title) . $tags . '</div>'
+                . ($sub ? '<div style="font-size:13px;color:' . $MUTED . ';margin-top:2px">' . implode(' · ', $sub) . '</div>' : '')
+                . $note . '</td>'
+                . '<td align="right" style="padding:11px 0 11px 12px;border-top:1px solid ' . $LINE . ';vertical-align:top;white-space:nowrap">'
+                . '<span style="display:inline-block;padding:6px 12px;border-radius:999px;background:' . ($internal ? $INK : $MINT) . ';color:' . ($internal ? '#ffffff' : $GREEN_D) . ';font-size:' . ($internal ? '16' : '14.5') . 'px;font-weight:800">' . $h($q) . '</span></td></tr>';
+        }
+    }
+    return '<table role="presentation" width="100%" cellspacing="0" cellpadding="0">' . $out . '</table>';
+};
+
+$wrap = fn($preheader, $rows) => '<!DOCTYPE html><html lang="hu"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"></head>'
+  . '<body style="margin:0;padding:0;background:#eef1ec;' . $FONT . ';color:#17210f">'
+  . '<div style="display:none;max-height:0;overflow:hidden;opacity:0">' . $h($preheader) . '</div>'
+  . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef1ec;background-image:linear-gradient(160deg,#e3f0dc 0%,#f4f6f1 45%,#fbe9d9 100%)"><tr><td align="center" style="padding:22px 12px">'
+  . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px">' . $rows . '</table>'
+  . '</td></tr></table></body></html>';
+
+// ---------- 1) Vevő levele ----------
+$truckImg = $TRUCK ? '<img src="cid:truck@nagybani" width="200" alt="" style="display:block;border:0;width:200px;max-width:100%;height:auto">' : '';
+$heroInner = '<div style="font-size:15px;color:' . $MUTED . '">Kedves Partnerünk!</div>'
+  . '<div style="font-size:26px;line-height:1.15;font-weight:800;letter-spacing:-.5px;color:' . $INK . ';margin:6px 0 8px">A megrendelését rögzítettük! Köszönjük!</div>'
+  . '<div style="font-size:14.5px;line-height:1.5;color:' . $MUTED . '">Az alábbiakban összefoglaltuk, mit és mikorra kért. Ha valamit módosítana, válaszoljon erre a levélre, vagy hívjon minket.</div>'
+  . ($truckImg ? '<div style="margin-top:14px">' . $truckImg . '</div>' : '');
+$summary = '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:-5px">'
+  . '<tr>' . $summaryCell('Konyha', $h($company)) . $summaryCell('Rendelésszám', $h($orderNo)) . '</tr>'
+  . '<tr>' . $summaryCell('Szállítás napja', $h($dateLong), $GREEN, '#ffffff') . $summaryCell('Érkezés az áruval', $h($time) . ' órától', '#fde9b0', '#5c4300') . '</tr>'
+  . '<tr>' . $summaryCell('Fizetés', $payLabel !== '' ? $h($payLabel) : '<span style="font-weight:600;color:' . $MUTED . '">Nem adta meg</span>') . $summaryCell('Leadva', $h($placedAt)) . '</tr></table>';
+$tips = '<div style="font-size:15px;font-weight:800;color:' . $INK . ';margin-bottom:8px">Jó tudni</div>'
+  . '<table role="presentation" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.5;color:' . $MUTED . '">'
+  . '<tr><td style="padding:3px 10px 3px 0;vertical-align:top;color:' . $GREEN . ';font-weight:800">✓</td><td style="padding:3px 0">Módosítás vagy kérdés esetén válaszoljon erre a levélre, vagy hívja a <a href="tel:+36707729373" style="color:' . $GREEN_D . ';font-weight:800;text-decoration:none">+36 70 7729 373</a> számot.</td></tr>'
+  . ($cleanedCount ? '<tr><td style="padding:3px 10px 3px 0;vertical-align:top;color:' . $GREEN . ';font-weight:800">✓</td><td style="padding:3px 0">A tisztított, konyhakész árut 13:00-ig leadva másnapra, utána holnaputánra tudjuk szállítani.</td></tr>' : '')
+  . ($customCount ? '<tr><td style="padding:3px 10px 3px 0;vertical-align:top;color:' . $GREEN . ';font-weight:800">✓</td><td style="padding:3px 0">A listában nem szereplő tételekkel kapcsolatban hamarosan keressük.</td></tr>' : '')
+  . '<tr><td style="padding:3px 10px 3px 0;vertical-align:top;color:' . $GREEN . ';font-weight:800">✓</td><td style="padding:3px 0">Vasárnap nem szállítunk.</td></tr></table>';
+$sign = '<div style="font-size:15px;color:' . $INK . '">Üdvözlettel,<br><b>Nagybani Gastro Zrt.</b></div>'
+  . '<div style="font-size:13px;color:' . $MUTED . ';margin-top:8px"><a href="tel:+36707729373" style="color:' . $GREEN_D . ';text-decoration:none;font-weight:700">+36 70 7729 373</a> · <a href="mailto:' . FROM_EMAIL . '" style="color:' . $GREEN_D . ';text-decoration:none;font-weight:700">' . FROM_EMAIL . '</a></div>';
+
+$html = $wrap("Rendelés rögzítve: $company, $dateShort, $time órától. Rendelésszám: $orderNo",
+    $headerCard($pill($h($orderNo), '#e8f2e4', $GREEN_D))
+  . $card($heroInner, '24px', 'background:#f7fbf5;')
+  . $card($summary, '17px')
+  . $card('<div style="font-size:17px;font-weight:800;color:' . $INK . '">Rendelt tételek <span style="color:' . $MUTED . ';font-weight:700">(' . count($clean) . ')</span></div>' . $itemRows(false), '20px 22px 12px')
+  . $card($tips)
+  . $card($sign)
+  . '<tr><td align="center" style="padding:6px 10px 0;font-size:12px;color:#7a8473">Ezt a levelet azért kapta, mert rendelést adott le a Nagybani Gastro rendelési felületén.</td></tr>');
+
+$text = "Kedves Partnerünk!\n\nA megrendelését rögzítettük! Köszönjük!\n\n"
+      . "Rendelésszám: $orderNo\nKonyha: $company\nSzállítás napja: $dateLong\nÉrkezés az áruval: $time órától\n"
+      . 'Fizetés: ' . ($payLabel !== '' ? $payLabel : 'nem adta meg') . "\nLeadva: $placedAt\n\nRendelt tételek:\n";
+foreach ($groups as $cat => $list) {
+    $text .= "\n$cat\n";
+    foreach ($list as $it) $text .= '- ' . $it['name'] . ': ' . $fmtQty($it['qty']) . ' ' . $it['unit']
+        . ($it['custom'] ? ' (egyeztetjük)' : '') . ($it['note'] !== '' ? " – „{$it['note']}”" : '') . "\n";
 }
-$cleanedNote = $cleanedCount
-    ? '<div style="margin:0 0 16px;padding:12px 14px;border-radius:10px;background:#e3f1f5;color:#2b6f85;font-size:14px;font-weight:700">'
-      . $cleanedCount . ' tisztított tétel van a rendelésben – előkészítendő.</div>'
-    : '';
-if ($customCount) $cleanedNote .= '<div style="margin:0 0 16px;padding:12px 14px;border-radius:10px;background:#fdeedd;color:#9a5a1c;font-size:14px;font-weight:700">'
-      . $customCount . ' olyan tételt kért, ami nincs a listában – egyeztetni kell vele.</div>';
+$text .= "\nMódosítás vagy kérdés esetén válaszoljon erre a levélre, vagy hívja a +36 70 7729 373 számot.\nVasárnap nem szállítunk.\n\nÜdvözlettel,\nNagybani Gastro Zrt.\n";
 
-$htmlInternal = '<!DOCTYPE html><html lang="hu"><body style="margin:0;background:#f5f8ef;font-family:Arial,Helvetica,sans-serif;color:#16381b">'
-  . '<div style="max-width:600px;margin:0 auto;padding:20px">'
-  . '<div style="background:#16381b;color:#fff;border-radius:16px 16px 0 0;padding:20px 22px">'
-  . '<div style="font-size:13px;color:#b9d79a;font-weight:700">ÚJ RENDELÉS · ' . $h($orderNo) . '</div>'
-  . '<div style="font-size:26px;font-weight:700;margin-top:6px">' . $h($company) . '</div>'
-  . '<table style="width:100%;margin-top:14px;border-collapse:collapse"><tr>'
-  . '<td style="padding:10px 12px;background:#6fa838;color:#16381b;border-radius:10px 0 0 10px">'
-  .   '<div style="font-size:12px;font-weight:700">Szállítás</div><div style="font-size:19px;font-weight:700;margin-top:2px">' . $h($dayShort) . '</div></td>'
-  . '<td style="padding:10px 12px;background:#f5c22c;color:#16381b;border-radius:0 10px 10px 0">'
-  .   '<div style="font-size:12px;font-weight:700">Érkezés</div><div style="font-size:19px;font-weight:700;margin-top:2px">' . $h($time) . ' órától</div></td>'
-  . '</tr></table></div>'
-  . '<div style="height:5px;background:#6fa838;background:linear-gradient(90deg,#6fa838,#f5c22c,#f0882a,#e0442f)"></div>'
-  . '<div style="background:#fff;padding:20px 22px;border-radius:0 0 16px 16px">'
-  . '<table style="width:100%;font-size:14px;margin-bottom:16px;color:#5f6d55">'
-  . '<tr><td style="padding:3px 0">Vevő e-mail</td><td style="text-align:right"><a href="mailto:' . $h($email) . '?subject=' . rawurlencode("Rendelés $orderNo") . '" style="color:#4f8a27;font-weight:700">' . $h($email) . '</a></td></tr>'
-  . '<tr><td style="padding:3px 0">Leadva</td><td style="text-align:right;color:#16381b">' . $h($placedAt) . '</td></tr>'
-  . '<tr><td style="padding:3px 0">Tételek</td><td style="text-align:right;color:#16381b;font-weight:700">' . count($clean) . ' db</td></tr></table>'
-  . $cleanedNote
-  . '<table style="width:100%;border-collapse:collapse">' . $iRows . '</table>'
-  . '<p style="margin:18px 0 0;font-size:13px;color:#5f6d55">A „Válasz” gombbal közvetlenül a vevőnek ír.</p>'
-  . '</div></div></body></html>';
+// ---------- 2) Belső értesítő (info@) ----------
+$alerts = '';
+$alert = fn($t, $bg, $fg) => '<div style="margin:0 0 8px;padding:11px 14px;border-radius:14px;background:' . $bg . ';color:' . $fg . ';font-size:14px;font-weight:800">' . $t . '</div>';
+if ($cleanedCount) $alerts .= $alert($cleanedCount . ' tisztított tétel – előkészítendő.', '#e3f1f5', '#2b6f85');
+if ($customCount)  $alerts .= $alert($customCount . ' tétel nincs a listában – egyeztetni kell a vevővel.', '#fdeedd', '#9a5a1c');
+if ($noteCount)    $alerts .= $alert($noteCount . ' tételhez megjegyzést írt.', '#fff4d6', '#7a5a00');
+$topInner = '<div style="font-size:12.5px;font-weight:800;color:#a9d79b">' . $h($SOURCE[$source]) . ' · ' . $h($orderNo) . '</div>'
+  . '<div style="font-size:30px;line-height:1.1;font-weight:800;letter-spacing:-.6px;color:#ffffff;margin:6px 0 14px">' . $h($company) . '</div>'
+  . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:-4px"><tr>'
+  . '<td style="padding:4px"><div style="background:' . $GREEN . ';border-radius:14px;padding:10px 12px"><div style="font-size:11.5px;font-weight:800;color:#d9f0d2">Szállítás</div><div style="font-size:17px;font-weight:800;color:#fff;margin-top:2px">' . $h($dateShort) . '</div></div></td>'
+  . '<td style="padding:4px"><div style="background:#f5c22c;border-radius:14px;padding:10px 12px"><div style="font-size:11.5px;font-weight:800;color:#5c4300">Érkezés</div><div style="font-size:17px;font-weight:800;color:#17210f;margin-top:2px">' . $h($time) . ' órától</div></div></td>'
+  . '<td style="padding:4px"><div style="background:#ffffff;border-radius:14px;padding:10px 12px"><div style="font-size:11.5px;font-weight:800;color:' . $MUTED . '">Fizetés</div><div style="font-size:17px;font-weight:800;color:#17210f;margin-top:2px">' . ($payLabel !== '' ? $h($payLabel) : '–') . '</div></div></td>'
+  . '</tr></table>';
+$meta = '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;color:' . $MUTED . '">'
+  . '<tr><td style="padding:4px 0">Vevő e-mail</td><td align="right"><a href="mailto:' . $h($email) . '?subject=' . rawurlencode("Rendelés $orderNo") . '" style="color:' . $GREEN_D . ';font-weight:800;text-decoration:none">' . $h($email) . '</a></td></tr>'
+  . '<tr><td style="padding:4px 0">Leadva</td><td align="right" style="color:#17210f;font-weight:700">' . $h($placedAt) . '</td></tr>'
+  . '<tr><td style="padding:4px 0">Tételek</td><td align="right" style="color:#17210f;font-weight:800">' . count($clean) . ' tétel, ' . count($groups) . ' kategória</td></tr></table>';
 
-$textInternal = "ÚJ RENDELÉS – $orderNo\n\n$company\nSzállítás: $dayShort\nÉrkezés: $time órától\n"
-  . "Vevő e-mail: $email\nLeadva: $placedAt\n"
+$htmlInternal = $wrap("$company · $dateShort $time · " . count($clean) . ' tétel',
+    $headerCard($pill('ÚJ RENDELÉS', $GREEN, '#ffffff'))
+  . $card($topInner, '22px', 'background:#17210f;border-color:#17210f;')
+  . $card($meta . ($alerts ? '<div style="height:12px"></div>' . $alerts : ''), '16px 22px')
+  . $card('<div style="font-size:17px;font-weight:800;color:' . $INK . '">Összekészítendő</div>' . $itemRows(true), '18px 22px 10px')
+  . '<tr><td align="center" style="padding:6px 10px 0;font-size:12.5px;color:#7a8473">A „Válasz” gombbal közvetlenül a vevőnek ír.</td></tr>');
+
+$textInternal = "ÚJ RENDELÉS – $orderNo (" . $SOURCE[$source] . ")\n\n$company\nSzállítás: $dateShort\nÉrkezés: $time órától\n"
+  . 'Fizetés: ' . ($payLabel !== '' ? $payLabel : '–') . "\nVevő e-mail: $email\nLeadva: $placedAt\n"
   . ($cleanedCount ? "\n$cleanedCount tisztított tétel – előkészítendő!\n" : '')
-  . ($customCount ? "$customCount tétel nincs a listában – egyeztetni kell!\n" : '')
-  . "\nTételek:\n"
-  . implode("\n", array_map(fn($it) => '- ' . $it['name'] . ': ' . $fmtQty($it['qty']) . ' ' . $it['unit']
+  . ($customCount ? "$customCount tétel nincs a listában – egyeztetni kell!\n" : '');
+foreach ($groups as $cat => $list) {
+    $textInternal .= "\n$cat\n";
+    foreach ($list as $it) $textInternal .= '[ ] ' . $it['name'] . ': ' . $fmtQty($it['qty']) . ' ' . $it['unit']
         . ($it['cleaned'] ? ' (tisztított)' : '') . ($it['custom'] ? ' (NINCS A LISTÁBAN)' : '')
-        . ($it['note'] !== '' ? "\n    megjegyzés: {$it['note']}" : ''), $clean))
-  . "\n";
+        . ($it['note'] !== '' ? "\n    megjegyzés: {$it['note']}" : '') . "\n";
+}
 
-function send_mail(string $to, string $subject, string $text, string $html, string $replyTo = FROM_EMAIL): bool {
-    $b = 'nb_' . bin2hex(random_bytes(8));
+// ---------- Küldés: szöveg + HTML + beágyazott képek ----------
+function send_mail(string $to, string $subject, string $text, string $html, string $replyTo = FROM_EMAIL, array $inline = []): bool {
+    $alt = 'nba_' . bin2hex(random_bytes(8));
+    $rel = 'nbr_' . bin2hex(random_bytes(8));
+    $altPart = "--$alt\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($text))
+             . "--$alt\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
+             . "--$alt--\r\n";
     $headers  = 'From: =?UTF-8?B?' . base64_encode(FROM_NAME) . '?= <' . FROM_EMAIL . ">\r\n";
-    $headers .= "Reply-To: $replyTo\r\nMIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=\"$b\"\r\n";
-    $body  = "--$b\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($text))
-           . "--$b\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n" . chunk_split(base64_encode($html))
-           . "--$b--";
+    $headers .= "Reply-To: $replyTo\r\nMIME-Version: 1.0\r\n";
+    $files = array_filter($inline, fn($p) => $p !== '' && is_readable($p));
+    if (!$files) {
+        $headers .= "Content-Type: multipart/alternative; boundary=\"$alt\"\r\n";
+        $body = $altPart;
+    } else {
+        $headers .= "Content-Type: multipart/related; boundary=\"$rel\"; type=\"multipart/alternative\"\r\n";
+        $body = "--$rel\r\nContent-Type: multipart/alternative; boundary=\"$alt\"\r\n\r\n" . $altPart;
+        foreach ($files as $cid => $path) {
+            $fn = basename($path);
+            $body .= "--$rel\r\nContent-Type: image/png; name=\"$fn\"\r\nContent-Transfer-Encoding: base64\r\n"
+                   . "Content-ID: <$cid>\r\nContent-Disposition: inline; filename=\"$fn\"\r\n\r\n" . chunk_split(base64_encode((string)file_get_contents($path)));
+        }
+        $body .= "--$rel--";
+    }
     return mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, '-f' . FROM_EMAIL);
 }
 
-$sent = send_mail($email, "Megrendelését rögzítettük ($orderNo) – Nagybani Gastro", $text, $html);
+$imgs = ['logo@nagybani' => $LOGO, 'truck@nagybani' => $TRUCK];
+$sent = send_mail($email, "Megrendelését rögzítettük ($orderNo) – Nagybani Gastro", $text, $html, FROM_EMAIL, $imgs);
 if (NOTIFY_EMAIL !== '') {
-    send_mail(NOTIFY_EMAIL, "Új rendelés $orderNo – $company – $dayShort $time", $textInternal, $htmlInternal, $email);
+    send_mail(NOTIFY_EMAIL, "Új rendelés · $company · $dateShort $time · $orderNo", $textInternal, $htmlInternal, $email, ['logo@nagybani' => $LOGO]);
 }
 if (!$sent) {
     error_log("send-order.php: mail() sikertelen ($orderNo, $email)");
